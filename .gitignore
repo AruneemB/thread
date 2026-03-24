@@ -3,5 +3,6 @@
 .specstory/
 
 # Project documentation (ignored for implementation)
-THREAD-SPEC.md
 THREAD-INSIGHTS.md
+THREAD-NEXT-STEPS.md
+THREAD-SPEC.md
