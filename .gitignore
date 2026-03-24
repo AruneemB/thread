@@ -1,0 +1,6 @@
+# Local development files
+.history/
+.specstory/
+
+# Project documentation (ignored for implementation)
+THREAD-SPEC.md
