@@ -9,6 +9,8 @@ dist/
 
 # Database
 *.db
+*.db-shm
+*.db-wal
 
 # Local development files
 .history/
