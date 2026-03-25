@@ -28,3 +28,14 @@ instance.exec(`
     msg_length  INTEGER NOT NULL
   )
 `);
+
+instance.exec(`
+  CREATE TABLE IF NOT EXISTS members (
+    chat_id     TEXT NOT NULL,
+    user_id     TEXT NOT NULL,
+    username    TEXT,
+    first_name  TEXT NOT NULL,
+    last_seen   TEXT NOT NULL,
+    PRIMARY KEY (chat_id, user_id)
+  )
+`);
