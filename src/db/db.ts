@@ -1,4 +1,70 @@
 import Database from "better-sqlite3";
+import { z } from "zod";
+
+// --- Zod Validation Schemas ---
+
+export const MessageSchema = z.object({
+  chat_id: z.string().min(1),
+  user_id: z.string().min(1),
+  username: z.string().nullable(),
+  first_name: z.string(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  hour: z.number().int().min(0).max(23),
+  dow: z.number().int().min(0).max(6),
+  msg_length: z.number().int().min(0),
+});
+
+export const MemberSchema = z.object({
+  chat_id: z.string().min(1),
+  user_id: z.string().min(1),
+  username: z.string().nullable(),
+  first_name: z.string(),
+  last_seen: z.string(),
+});
+
+export type Message = z.infer<typeof MessageSchema>;
+export type Member = z.infer<typeof MemberSchema>;
+
+// --- Schema Initialization ---
+
+export function initSchema(database: Database.Database): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id     TEXT    NOT NULL,
+      user_id     TEXT    NOT NULL,
+      username    TEXT,
+      first_name  TEXT    NOT NULL,
+      date        TEXT    NOT NULL,
+      hour        INTEGER NOT NULL,
+      dow         INTEGER NOT NULL,
+      msg_length  INTEGER NOT NULL
+    )
+  `);
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS members (
+      chat_id     TEXT NOT NULL,
+      user_id     TEXT NOT NULL,
+      username    TEXT,
+      first_name  TEXT NOT NULL,
+      last_seen   TEXT NOT NULL,
+      PRIMARY KEY (chat_id, user_id)
+    )
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_messages_chat_user_date
+      ON messages(chat_id, user_id, date)
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_messages_chat_date
+      ON messages(chat_id, date)
+  `);
+}
+
+// --- Singleton Connection ---
 
 const DATABASE_PATH = process.env.DATABASE_PATH ?? "./thread.db";
 
@@ -8,47 +74,14 @@ function getDb(): Database.Database {
   if (!db) {
     db = new Database(DATABASE_PATH);
     db.pragma("journal_mode = WAL");
+    initSchema(db);
   }
   return db;
 }
 
-// Initialize the connection eagerly
 const instance = getDb();
 
-instance.exec(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    chat_id     TEXT    NOT NULL,
-    user_id     TEXT    NOT NULL,
-    username    TEXT,
-    first_name  TEXT    NOT NULL,
-    date        TEXT    NOT NULL,
-    hour        INTEGER NOT NULL,
-    dow         INTEGER NOT NULL,
-    msg_length  INTEGER NOT NULL
-  )
-`);
-
-instance.exec(`
-  CREATE TABLE IF NOT EXISTS members (
-    chat_id     TEXT NOT NULL,
-    user_id     TEXT NOT NULL,
-    username    TEXT,
-    first_name  TEXT NOT NULL,
-    last_seen   TEXT NOT NULL,
-    PRIMARY KEY (chat_id, user_id)
-  )
-`);
-
-instance.exec(`
-  CREATE INDEX IF NOT EXISTS idx_messages_chat_user_date
-    ON messages(chat_id, user_id, date)
-`);
-
-instance.exec(`
-  CREATE INDEX IF NOT EXISTS idx_messages_chat_date
-    ON messages(chat_id, date)
-`);
+// --- Exports ---
 
 export { instance as db };
 
