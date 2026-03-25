@@ -14,3 +14,17 @@ function getDb(): Database.Database {
 
 // Initialize the connection eagerly
 const instance = getDb();
+
+instance.exec(`
+  CREATE TABLE IF NOT EXISTS messages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id     TEXT    NOT NULL,
+    user_id     TEXT    NOT NULL,
+    username    TEXT,
+    first_name  TEXT    NOT NULL,
+    date        TEXT    NOT NULL,
+    hour        INTEGER NOT NULL,
+    dow         INTEGER NOT NULL,
+    msg_length  INTEGER NOT NULL
+  )
+`);
