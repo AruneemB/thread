@@ -97,6 +97,16 @@ export function upsertMember(member: Member, database?: Database.Database): Data
   return stmt.run(parsed);
 }
 
+export function insertMessage(message: Message, database?: Database.Database): Database.RunResult {
+  const parsed = MessageSchema.parse(message);
+  const target = database ?? instance;
+  const stmt = target.prepare(`
+    INSERT INTO messages (chat_id, user_id, username, first_name, date, hour, dow, msg_length)
+    VALUES (@chat_id, @user_id, @username, @first_name, @date, @hour, @dow, @msg_length)
+  `);
+  return stmt.run(parsed);
+}
+
 // --- Exports ---
 
 export { instance as db };
