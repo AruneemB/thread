@@ -1,6 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+
+# Database
+*.db
+
 # Local development files
 .history/
 .specstory/
+.claude/
 
 # Project documentation (ignored for implementation)
 THREAD-INSIGHTS.md
