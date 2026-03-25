@@ -49,3 +49,9 @@ instance.exec(`
   CREATE INDEX IF NOT EXISTS idx_messages_chat_date
     ON messages(chat_id, date)
 `);
+
+export { instance as db };
+
+export function closeDb(): void {
+  instance.close();
+}
