@@ -39,3 +39,13 @@ instance.exec(`
     PRIMARY KEY (chat_id, user_id)
   )
 `);
+
+instance.exec(`
+  CREATE INDEX IF NOT EXISTS idx_messages_chat_user_date
+    ON messages(chat_id, user_id, date)
+`);
+
+instance.exec(`
+  CREATE INDEX IF NOT EXISTS idx_messages_chat_date
+    ON messages(chat_id, date)
+`);
