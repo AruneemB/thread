@@ -81,6 +81,22 @@ function getDb(): Database.Database {
 
 const instance = getDb();
 
+// --- Data Access Functions ---
+
+export function upsertMember(member: Member, database?: Database.Database): Database.RunResult {
+  const parsed = MemberSchema.parse(member);
+  const target = database ?? instance;
+  const stmt = target.prepare(`
+    INSERT INTO members (chat_id, user_id, username, first_name, last_seen)
+    VALUES (@chat_id, @user_id, @username, @first_name, @last_seen)
+    ON CONFLICT(chat_id, user_id) DO UPDATE SET
+      username = excluded.username,
+      first_name = excluded.first_name,
+      last_seen = excluded.last_seen
+  `);
+  return stmt.run(parsed);
+}
+
 // --- Exports ---
 
 export { instance as db };
