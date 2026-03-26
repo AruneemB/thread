@@ -16,6 +16,7 @@ dist/
 .history/
 .specstory/
 .claude/
+.vscode/
 
 # Project documentation (ignored for implementation)
 THREAD-INSIGHTS.md
