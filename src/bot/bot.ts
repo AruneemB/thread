@@ -1,5 +1,6 @@
 import { Bot } from "grammy";
 import pino from "pino";
+import { closeDb } from "../db/db.js";
 
 export const _logger = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "bot" });
 
@@ -11,3 +12,32 @@ _logger.info("Bot token loaded");
 
 export const bot = new Bot(token);
 _logger.info("Bot instance created");
+
+let shuttingDown = false;
+
+export async function _shutdown(signal: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  _logger.info({ signal }, "Shutdown signal received");
+
+  try {
+    bot.stop();
+  } catch (err) {
+    _logger.error({ err }, "Error stopping bot");
+  }
+
+  try {
+    closeDb();
+  } catch (err) {
+    _logger.error({ err }, "Error closing database");
+  }
+
+  process.exit(0);
+}
+
+export function _resetShutdownFlag(): void {
+  shuttingDown = false;
+}
+
+process.on("SIGTERM", () => void _shutdown("SIGTERM"));
+process.on("SIGINT", () => void _shutdown("SIGINT"));
