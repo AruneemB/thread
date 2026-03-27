@@ -32,7 +32,10 @@ export function registerMessageHandler(bot: Bot, logger: Logger): void {
     const msg_length = computeMsgLength(msg.text);
     const last_seen = new Date(unixTimestamp * 1000).toISOString();
 
-    upsertMember({ chat_id, user_id, username, first_name, last_seen });
-    insertMessage({ chat_id, user_id, username, first_name, date, hour, dow, msg_length });
+    try { upsertMember({ chat_id, user_id, username, first_name, last_seen }); }
+    catch (err) { logger.error({ err, chat_id, user_id }, "Failed to upsert member"); }
+
+    try { insertMessage({ chat_id, user_id, username, first_name, date, hour, dow, msg_length }); }
+    catch (err) { logger.error({ err, chat_id, user_id }, "Failed to insert message"); }
   });
 }
