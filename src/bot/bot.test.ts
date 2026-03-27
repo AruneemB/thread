@@ -10,6 +10,8 @@ vi.mock("grammy", () => {
   return { Bot };
 });
 
+vi.mock("./middleware.js", () => ({ registerMessageHandler: vi.fn() }));
+
 vi.mock("../db/db.js", () => ({
   closeDb: vi.fn(),
 }));
