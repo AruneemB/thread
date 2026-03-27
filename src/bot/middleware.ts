@@ -1,12 +1,20 @@
 import type { Bot } from "grammy";
 import type { Logger } from "pino";
 
-export function extractDateFields(_unixTimestamp: number): { date: string; hour: number; dow: number } {
-  throw new Error("Not implemented");
+export function extractDateFields(unixTimestamp: number): { date: string; hour: number; dow: number } {
+  const d = new Date(unixTimestamp * 1000);
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return {
+    date: `${year}-${month}-${day}`,
+    hour: d.getUTCHours(),
+    dow: (d.getUTCDay() + 6) % 7,
+  };
 }
 
-export function computeMsgLength(_text: string | undefined): number {
-  throw new Error("Not implemented");
+export function computeMsgLength(text: string | undefined): number {
+  return text?.length ?? 0;
 }
 
 export function registerMessageHandler(bot: Bot, logger: Logger): void {
