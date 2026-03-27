@@ -1,5 +1,6 @@
 import type { Bot } from "grammy";
 import type { Logger } from "pino";
+import { upsertMember, insertMessage } from "../db/db.js";
 
 export function extractDateFields(unixTimestamp: number): { date: string; hour: number; dow: number } {
   const d = new Date(unixTimestamp * 1000);
@@ -27,7 +28,11 @@ export function registerMessageHandler(bot: Bot, logger: Logger): void {
     const username = msg.from.username ?? null;
     const first_name = msg.from.first_name;
     const unixTimestamp = msg.date;
+    const { date, hour, dow } = extractDateFields(unixTimestamp);
+    const msg_length = computeMsgLength(msg.text);
+    const last_seen = new Date(unixTimestamp * 1000).toISOString();
 
-    logger.debug({ chat_id, user_id, username, first_name, unixTimestamp }, "Message received");
+    upsertMember({ chat_id, user_id, username, first_name, last_seen });
+    insertMessage({ chat_id, user_id, username, first_name, date, hour, dow, msg_length });
   });
 }
