@@ -150,6 +150,29 @@
       color: #374151;
     }
 
+    .streak-pills {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .pill {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .pill-active {
+      background: var(--teal-600);
+      color: #ffffff;
+    }
+
+    .pill-grey {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
     .calendar-wrapper {
       display: flex;
     }
@@ -302,6 +325,11 @@
           <div class="cell cell-0"></div>
         </div>
       </div>
+    </div>
+    <div class="streak-pills">
+      <span class="pill pill-active">7 day streak</span>
+      <span class="pill pill-grey">Best: 42 days</span>
+      <span class="pill pill-grey">180 active</span>
     </div>
     </div>
   </div>
