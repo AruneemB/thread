@@ -31,3 +31,51 @@ export function getDailyCountsForUser(
   }
   return result;
 }
+
+function subtractOneDay(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function addOneDay(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+export function computeStreaks(
+  dailyCounts: Map<string, number>,
+  today?: string,
+): { current: number; longest: number } {
+  if (dailyCounts.size === 0) return { current: 0, longest: 0 };
+
+  const todayStr = today ?? getUtcTodayString();
+
+  // Current streak: walk backward from today
+  let current = 0;
+  let cursor = todayStr;
+  while (dailyCounts.has(cursor) && dailyCounts.get(cursor)! > 0) {
+    current++;
+    cursor = subtractOneDay(cursor);
+  }
+
+  // Longest streak: sort active dates forward, find longest consecutive run
+  const sortedDates = Array.from(dailyCounts.keys())
+    .filter(d => dailyCounts.get(d)! > 0 && d <= todayStr)
+    .sort();
+
+  let longest = 0;
+  let run = 0;
+  for (let i = 0; i < sortedDates.length; i++) {
+    if (i === 0 || sortedDates[i] === addOneDay(sortedDates[i - 1])) {
+      run++;
+    } else {
+      run = 1;
+    }
+    longest = Math.max(longest, run);
+  }
+
+  longest = Math.max(longest, current);
+  return { current, longest };
+}
