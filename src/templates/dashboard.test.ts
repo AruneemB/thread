@@ -138,3 +138,98 @@ describe("calendar component", () => {
     });
   });
 });
+
+describe("member cards", () => {
+  describe("member card container", () => {
+    it(".member-card has border property", () => {
+      expect(html).toMatch(/\.member-card\s*\{[^}]*border:/);
+    });
+
+    it(".member-card has padding property", () => {
+      expect(html).toMatch(/\.member-card\s*\{[^}]*padding:/);
+    });
+  });
+
+  describe("avatar", () => {
+    it(".avatar has border-radius 50%", () => {
+      expect(html).toMatch(/\.avatar\s*\{[^}]*border-radius:\s*50%/);
+    });
+
+    it(".avatar has width 40px", () => {
+      expect(html).toMatch(/\.avatar\s*\{[^}]*width:\s*40px/);
+    });
+
+    it(".avatar has height 40px", () => {
+      expect(html).toMatch(/\.avatar\s*\{[^}]*height:\s*40px/);
+    });
+
+    it(".avatar has white text color", () => {
+      expect(html).toMatch(/\.avatar\s*\{[^}]*color:\s*#ffffff/);
+    });
+  });
+
+  describe("header row", () => {
+    it(".member-header is flex", () => {
+      expect(html).toMatch(/\.member-header\s*\{[^}]*display:\s*flex/);
+    });
+
+    it(".member-header has justify-content space-between", () => {
+      expect(html).toMatch(/\.member-header\s*\{[^}]*justify-content:\s*space-between/);
+    });
+
+    it("contains display-name class in HTML", () => {
+      expect(html).toContain('class="display-name"');
+    });
+
+    it("contains member-stats class in HTML", () => {
+      expect(html).toContain('class="member-stats"');
+    });
+  });
+
+  describe("streak pills", () => {
+    it(".pill has border-radius", () => {
+      expect(html).toMatch(/\.pill\s*\{[^}]*border-radius:/);
+    });
+
+    it(".pill-active has background", () => {
+      expect(html).toMatch(/\.pill-active\s*\{[^}]*background:/);
+    });
+
+    it(".pill-grey has background", () => {
+      expect(html).toMatch(/\.pill-grey\s*\{[^}]*background:/);
+    });
+
+    it('HTML contains "day streak"', () => {
+      expect(html).toContain("day streak");
+    });
+
+    it('HTML contains "Best:"', () => {
+      expect(html).toContain("Best:");
+    });
+
+    it('HTML contains "active"', () => {
+      expect(html).toContain("active");
+    });
+  });
+
+  describe("legend footer", () => {
+    it('contains "Less" text', () => {
+      expect(html).toContain("Less");
+    });
+
+    it('contains "More" text', () => {
+      expect(html).toContain("More");
+    });
+
+    it("contains exactly 5 legend-swatch elements", () => {
+      const matches = html.match(/class="legend-swatch"/g) || [];
+      expect(matches.length).toBe(5);
+    });
+  });
+
+  describe("multi-card stacking", () => {
+    it(".cards-container has gap property", () => {
+      expect(html).toMatch(/\.cards-container\s*\{[^}]*gap:/);
+    });
+  });
+});
