@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 85">
+  <!--
+    Thread logo — contribution graph icon + wordmark.
+    The grid is a 5-week × 7-day heatmap fragment using the brand teal ramp.
+  -->
+
+  <!-- Contribution grid (5 cols × 7 rows, 10×10 cells, 2.5 gap) -->
+  <g>
+    <!-- Mon -->
+    <rect x="0"    y="0"    width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+    <rect x="12.5" y="0"    width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+    <rect x="25"   y="0"    width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+    <rect x="37.5" y="0"    width="10" height="10" rx="2.5" fill="#1d9e75"/>
+    <rect x="50"   y="0"    width="10" height="10" rx="2.5" fill="#0f6e56"/>
+
+    <!-- Tue -->
+    <rect x="0"    y="12.5" width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+    <rect x="12.5" y="12.5" width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+    <rect x="25"   y="12.5" width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+    <rect x="37.5" y="12.5" width="10" height="10" rx="2.5" fill="#0f6e56"/>
+    <rect x="50"   y="12.5" width="10" height="10" rx="2.5" fill="#1d9e75"/>
+
+    <!-- Wed -->
+    <rect x="0"    y="25"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+    <rect x="12.5" y="25"   width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+    <rect x="25"   y="25"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+    <rect x="37.5" y="25"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+    <rect x="50"   y="25"   width="10" height="10" rx="2.5" fill="#0f6e56"/>
+
+    <!-- Thu -->
+    <rect x="0"    y="37.5" width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+    <rect x="12.5" y="37.5" width="10" height="10" rx="2.5" fill="#1d9e75"/>
+    <rect x="25"   y="37.5" width="10" height="10" rx="2.5" fill="#0f6e56"/>
+    <rect x="37.5" y="37.5" width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+    <rect x="50"   y="37.5" width="10" height="10" rx="2.5" fill="#1d9e75"/>
+
+    <!-- Fri -->
+    <rect x="0"    y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+    <rect x="12.5" y="50"   width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+    <rect x="25"   y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+    <rect x="37.5" y="50"   width="10" height="10" rx="2.5" fill="#0f6e56"/>
+    <rect x="50"   y="50"   width="10" height="10" rx="2.5" fill="#0f6e56"/>
+
+    <!-- Sat -->
+    <rect x="0"    y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+    <rect x="12.5" y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+    <rect x="25"   y="62.5" width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+    <rect x="37.5" y="62.5" width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+    <rect x="50"   y="62.5" width="10" height="10" rx="2.5" fill="#1d9e75"/>
+
+    <!-- Sun -->
+    <rect x="0"    y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+    <rect x="12.5" y="75"   width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+    <rect x="25"   y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+    <rect x="37.5" y="75"   width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+    <rect x="50"   y="75"   width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="76" y="53" font-family="Georgia,'Times New Roman','Palatino Linotype',serif"
+        font-size="40" font-weight="700" fill="#1a1a1a" letter-spacing="0.5">Thread</text>
+</svg>
