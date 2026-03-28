@@ -75,3 +75,66 @@ describe("dashboard skeleton", () => {
     });
   });
 });
+
+describe("calendar component", () => {
+  describe("color ramp", () => {
+    it("cell-0 maps to #e1f5ee", () => {
+      expect(html).toMatch(/\.cell-0\s*\{[^}]*#e1f5ee/);
+    });
+
+    it("cell-1 maps to #9fe1cb", () => {
+      expect(html).toMatch(/\.cell-1\s*\{[^}]*#9fe1cb/);
+    });
+
+    it("cell-2 maps to #5dcaa5", () => {
+      expect(html).toMatch(/\.cell-2\s*\{[^}]*#5dcaa5/);
+    });
+
+    it("cell-3 maps to #1d9e75", () => {
+      expect(html).toMatch(/\.cell-3\s*\{[^}]*#1d9e75/);
+    });
+
+    it("cell-4 maps to #0f6e56", () => {
+      expect(html).toMatch(/\.cell-4\s*\{[^}]*#0f6e56/);
+    });
+
+    it("cell-future class exists", () => {
+      expect(html).toMatch(/\.cell-future\s*\{/);
+    });
+  });
+
+  describe("grid structure", () => {
+    it("defines .calendar-grid", () => {
+      expect(html).toMatch(/\.calendar-grid\s*\{/);
+    });
+
+    it("uses repeat(53 for columns", () => {
+      expect(html).toContain("repeat(53");
+    });
+
+    it("uses repeat(7 for rows", () => {
+      expect(html).toContain("repeat(7");
+    });
+  });
+
+  describe("labels", () => {
+    it("contains M, W, F day labels", () => {
+      expect(html).toContain(">M<");
+      expect(html).toContain(">W<");
+      expect(html).toContain(">F<");
+    });
+
+    it("contains at least 3 month names", () => {
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const found = months.filter((m) => html.includes(m));
+      expect(found.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe("placeholder grid", () => {
+    it("contains at least 371 cell-0 placeholders", () => {
+      const matches = html.match(/class="cell cell-0"/g) || [];
+      expect(matches.length).toBeGreaterThanOrEqual(371);
+    });
+  });
+});
