@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="src/templates/logo.svg" width="80" alt="Thread" />
+  <img src="src/templates/logo.svg" width="380" alt="Thread" />
 </p>
-
-<h1 align="center">Thread</h1>
 
 <p align="center"><em>Every message is a commit.</em></p>
 

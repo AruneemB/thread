@@ -1,4 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 85">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 85">
+  <style>
+    .wordmark { fill: #1a1a1a; }
+    @media (prefers-color-scheme: dark) {
+      .wordmark { fill: #f0f0f0; }
+    }
+  </style>
   <!--
     Thread logo — contribution graph icon + wordmark.
     The grid is a 5-week × 7-day heatmap fragment using the brand teal ramp.
@@ -57,6 +63,7 @@
   </g>
 
   <!-- Wordmark -->
-  <text x="76" y="53" font-family="Georgia,'Times New Roman','Palatino Linotype',serif"
-        font-size="40" font-weight="700" fill="#1a1a1a" letter-spacing="0.5">Thread</text>
+  <text class="wordmark" x="76" y="57"
+        font-family="'Iowan Old Style',Charter,'Sitka Display','Cambria',serif"
+        font-size="52" font-weight="700" letter-spacing="0.5">Thread</text>
 </svg>
