@@ -77,4 +77,18 @@ describe("computeStreaks", () => {
     const result = computeStreaks(counts, TODAY);
     expect(result).toEqual({ current: 1, longest: 10 });
   });
+
+  it("returns current: 0 for a streak ending yesterday", () => {
+    const counts = new Map<string, number>();
+    for (let i = 1; i <= 4; i++) counts.set(daysAgo(i), 1);
+    const result = computeStreaks(counts, TODAY);
+    expect(result).toEqual({ current: 0, longest: 4 });
+  });
+
+  it("returns current equal to longest for a streak ending today", () => {
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 7; i++) counts.set(daysAgo(i), 1);
+    const result = computeStreaks(counts, TODAY);
+    expect(result).toEqual({ current: 7, longest: 7 });
+  });
 });
