@@ -67,6 +67,34 @@
       background: var(--teal-600);
       color: #ffffff;
     }
+
+    .cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px 24px;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 16px 24px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .legend-label {
+      font-size: 12px;
+      color: #6b7280;
+      padding: 0 6px;
+    }
+
+    .legend-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+    }
   </style>
 </head>
 <body>
@@ -80,6 +108,19 @@
     <button class="sort-btn">streak</button>
     <button class="sort-btn">longest</button>
     <button class="sort-btn">recent</button>
+  </div>
+
+  <div class="cards-container">
+  </div>
+
+  <div class="legend">
+    <span class="legend-label">Less</span>
+    <span class="legend-swatch" style="background: var(--teal-50)"></span>
+    <span class="legend-swatch" style="background: var(--teal-200)"></span>
+    <span class="legend-swatch" style="background: var(--teal-400)"></span>
+    <span class="legend-swatch" style="background: var(--teal-600)"></span>
+    <span class="legend-swatch" style="background: var(--teal-800)"></span>
+    <span class="legend-label">More</span>
   </div>
 </body>
 </html>
