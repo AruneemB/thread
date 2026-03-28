@@ -44,6 +44,34 @@ function addOneDay(dateStr: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+export function getHourlyMatrix(
+  chatId: string,
+  userId: string,
+  weeks: number = 52,
+  database?: Database.Database,
+  referenceDate?: string,
+): number[][] {
+  const target = database ?? db;
+  const ref = referenceDate ? new Date(referenceDate + "T00:00:00Z") : new Date();
+  const cutoff = new Date(ref);
+  cutoff.setUTCDate(cutoff.getUTCDate() - weeks * 7);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  const matrix: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+
+  const rows = target.prepare(`
+    SELECT dow, hour, COUNT(*) AS msg_count
+    FROM messages
+    WHERE chat_id = ? AND user_id = ? AND date >= ?
+    GROUP BY dow, hour
+  `).all(chatId, userId, cutoffStr) as { dow: number; hour: number; msg_count: number }[];
+
+  for (const row of rows) {
+    matrix[row.dow][row.hour] = row.msg_count;
+  }
+  return matrix;
+}
+
 export function computeStreaks(
   dailyCounts: Map<string, number>,
   today?: string,
