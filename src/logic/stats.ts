@@ -86,6 +86,20 @@ export function getTotalMessages(
   return row.cnt;
 }
 
+export function getPeakHour(
+  matrix: number[][],
+): { dow: number; hour: number; count: number } {
+  let best = { dow: 0, hour: 0, count: 0 };
+  for (let dow = 0; dow < matrix.length; dow++) {
+    for (let hour = 0; hour < matrix[dow].length; hour++) {
+      if (matrix[dow][hour] > best.count) {
+        best = { dow, hour, count: matrix[dow][hour] };
+      }
+    }
+  }
+  return best;
+}
+
 export function computeStreaks(
   dailyCounts: Map<string, number>,
   today?: string,
