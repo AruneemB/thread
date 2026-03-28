@@ -86,6 +86,50 @@ export function getTotalMessages(
   return row.cnt;
 }
 
+export interface TopMember {
+  user_id: string;
+  first_name: string;
+  username: string | null;
+  totalCount: number;
+}
+
+export interface GroupSummary {
+  totalMessages: number;
+  activeDays: number;
+  topMembers: TopMember[];
+}
+
+export function getGroupSummary(
+  chatId: string,
+  topN: number = 20,
+  database?: Database.Database,
+): GroupSummary {
+  const target = database ?? db;
+
+  const totalRow = target.prepare(`
+    SELECT COUNT(*) AS cnt FROM messages WHERE chat_id = ?
+  `).get(chatId) as { cnt: number };
+
+  const daysRow = target.prepare(`
+    SELECT COUNT(DISTINCT date) AS cnt FROM messages WHERE chat_id = ?
+  `).get(chatId) as { cnt: number };
+
+  const members = target.prepare(`
+    SELECT user_id, first_name, username, COUNT(*) AS totalCount
+    FROM messages
+    WHERE chat_id = ?
+    GROUP BY user_id
+    ORDER BY totalCount DESC
+    LIMIT ?
+  `).all(chatId, topN) as TopMember[];
+
+  return {
+    totalMessages: totalRow.cnt,
+    activeDays: daysRow.cnt,
+    topMembers: members,
+  };
+}
+
 export function getPeakHour(
   matrix: number[][],
 ): { dow: number; hour: number; count: number } {
