@@ -43,12 +43,43 @@
       font-size: 14px;
       color: #6b7280;
     }
+
+    .sort-bar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 24px;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .sort-btn {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .sort-btn.active {
+      background: var(--teal-600);
+      color: #ffffff;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <span class="group-name">[Group Name]</span>
     <span class="date-range">[date range]</span>
+  </div>
+
+  <div class="sort-bar">
+    <button class="sort-btn active">total messages</button>
+    <button class="sort-btn">streak</button>
+    <button class="sort-btn">longest</button>
+    <button class="sort-btn">recent</button>
   </div>
 </body>
 </html>
