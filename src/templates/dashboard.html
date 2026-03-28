@@ -115,6 +115,41 @@
       flex-shrink: 0;
     }
 
+    .member-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .member-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .display-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .role-label {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .member-stats {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stat {
+      font-size: 13px;
+      color: #374151;
+    }
+
     .calendar-wrapper {
       display: flex;
     }
@@ -189,7 +224,18 @@
 
   <div class="cards-container">
     <div class="member-card">
-    <div class="avatar" style="background: #4a90d9">AK</div>
+    <div class="member-header">
+      <div class="member-info">
+        <div class="avatar" style="background: #4a90d9">AK</div>
+        <span class="display-name">Alex K.</span>
+        <span class="role-label">admin</span>
+      </div>
+      <div class="member-stats">
+        <span class="stat">2,341 msgs</span>
+        <span class="stat">7d</span>
+        <span class="stat">42d</span>
+      </div>
+    </div>
     <div class="calendar-wrapper">
       <div class="day-labels">
         <span class="day-label">M</span>
