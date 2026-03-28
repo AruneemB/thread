@@ -72,6 +72,20 @@ export function getHourlyMatrix(
   return matrix;
 }
 
+export function getTotalMessages(
+  chatId: string,
+  userId: string,
+  database?: Database.Database,
+): number {
+  const target = database ?? db;
+  const row = target.prepare(`
+    SELECT COUNT(*) AS cnt
+    FROM messages
+    WHERE chat_id = ? AND user_id = ?
+  `).get(chatId, userId) as { cnt: number };
+  return row.cnt;
+}
+
 export function computeStreaks(
   dailyCounts: Map<string, number>,
   today?: string,
