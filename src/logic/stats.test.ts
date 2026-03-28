@@ -50,4 +50,31 @@ describe("computeStreaks", () => {
     const result = computeStreaks(counts, TODAY);
     expect(result).toEqual({ current: 0, longest: 1 });
   });
+
+  it("returns { current: 5, longest: 5 } for 5 consecutive days ending today", () => {
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 5; i++) {
+      counts.set(daysAgo(i), 1);
+    }
+    const result = computeStreaks(counts, TODAY);
+    expect(result).toEqual({ current: 5, longest: 5 });
+  });
+
+  it("handles a gap in the middle correctly", () => {
+    // Days: today, -1, -2, (gap at -3), -4, -5, -6, -7
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 3; i++) counts.set(daysAgo(i), 1);
+    for (let i = 4; i < 8; i++) counts.set(daysAgo(i), 1);
+    const result = computeStreaks(counts, TODAY);
+    expect(result).toEqual({ current: 3, longest: 4 });
+  });
+
+  it("handles a 10-day old streak plus today", () => {
+    // 10-day streak ended 3 days ago, plus today alone
+    const counts = new Map<string, number>();
+    counts.set(TODAY, 1);
+    for (let i = 3; i < 13; i++) counts.set(daysAgo(i), 1);
+    const result = computeStreaks(counts, TODAY);
+    expect(result).toEqual({ current: 1, longest: 10 });
+  });
 });
