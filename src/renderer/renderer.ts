@@ -36,11 +36,27 @@ export class DashboardRenderer {
     logger.info("Chromium browser launched");
   }
 
-  async render(data: DashboardData): Promise<Buffer> {
-    if (!this.browser) {
+  private async ensureBrowser(): Promise<void> {
+    if (!this.browser || !this.browser.isConnected()) {
+      if (this.browser) {
+        logger.warn("Browser disconnected, relaunching");
+      }
       await this.launch();
     }
+  }
 
+  async render(data: DashboardData): Promise<Buffer> {
+    await this.ensureBrowser();
+    try {
+      return await this._doRender(data);
+    } catch (err) {
+      logger.warn({ err }, "Render failed, relaunching browser and retrying");
+      await this.launch();
+      return await this._doRender(data);
+    }
+  }
+
+  private async _doRender(data: DashboardData): Promise<Buffer> {
     const timeoutMs = RENDER_TIMEOUT_MS;
     const url = pathToFileURL(TEMPLATE_PATH).href;
     const page = await this.browser!.newPage({ viewport: { width: 900, height: 800 } });
