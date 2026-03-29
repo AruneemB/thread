@@ -36,6 +36,14 @@ export class DashboardRenderer {
     logger.info("Chromium browser launched");
   }
 
+  async close(): Promise<void> {
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
+      logger.info("Chromium browser closed");
+    }
+  }
+
   private async ensureBrowser(): Promise<void> {
     if (!this.browser || !this.browser.isConnected()) {
       if (this.browser) {
@@ -73,5 +81,15 @@ export class DashboardRenderer {
     } finally {
       await page.close();
     }
+  }
+}
+
+export const renderer = new DashboardRenderer();
+
+export async function closeRenderer(): Promise<void> {
+  try {
+    await renderer.close();
+  } catch (err) {
+    logger.error({ err }, "Error closing renderer");
   }
 }

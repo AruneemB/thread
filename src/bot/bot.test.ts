@@ -16,6 +16,10 @@ vi.mock("../db/db.js", () => ({
   closeDb: vi.fn(),
 }));
 
+vi.mock("../renderer/renderer.js", () => ({
+  closeRenderer: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("Token validation", () => {
   beforeEach(() => {
     vi.resetModules();

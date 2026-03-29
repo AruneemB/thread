@@ -1,6 +1,7 @@
 import { Bot } from "grammy";
 import pino from "pino";
 import { closeDb } from "../db/db.js";
+import { closeRenderer } from "../renderer/renderer.js";
 import { registerMessageHandler } from "./middleware.js";
 
 export const _logger = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "bot" });
@@ -32,6 +33,12 @@ export async function _shutdown(signal: string): Promise<void> {
     closeDb();
   } catch (err) {
     _logger.error({ err }, "Error closing database");
+  }
+
+  try {
+    await closeRenderer();
+  } catch (err) {
+    _logger.error({ err }, "Error closing renderer");
   }
 
   process.exit(0);
