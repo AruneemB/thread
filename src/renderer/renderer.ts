@@ -72,6 +72,9 @@ export class DashboardRenderer {
       await page.goto(url, { waitUntil: "networkidle", timeout: timeoutMs });
       await page.evaluate((d) => {
         (window as any).__THREAD_DATA__ = d;
+        if (typeof (window as any).renderDashboard === 'function') {
+          (window as any).renderDashboard();
+        }
       }, data);
       await page.waitForLoadState("networkidle", { timeout: timeoutMs });
 

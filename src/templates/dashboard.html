@@ -343,5 +343,39 @@
     <span class="legend-swatch" style="background: var(--teal-800)"></span>
     <span class="legend-label">More</span>
   </div>
+
+  <script>
+  (function () {
+    var SORT_MAP = {
+      messages: { label: 'total messages', key: 'totalMessages' },
+      streak:   { label: 'streak',         key: 'currentStreak' },
+      longest:  { label: 'longest',        key: 'longestStreak' },
+      recent:   { label: 'recent',         key: 'activeDays' }
+    };
+
+    var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    function formatNumber(n) {
+      return n.toLocaleString('en-US');
+    }
+
+    function cellClass(count, maxCount) {
+      if (count < 0) return 'cell-future';
+      if (count === 0 || maxCount === 0) return 'cell-0';
+      var pct = (count / maxCount) * 100;
+      if (pct <= 15) return 'cell-1';
+      if (pct <= 45) return 'cell-2';
+      if (pct <= 70) return 'cell-3';
+      return 'cell-4';
+    }
+
+    function render() {
+      var data = window.__THREAD_DATA__;
+      if (!data) return;
+    }
+
+    window.renderDashboard = render;
+  })();
+  </script>
 </body>
 </html>
