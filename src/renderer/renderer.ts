@@ -34,4 +34,24 @@ export class DashboardRenderer {
     this.browser = await chromium.launch();
     logger.info("Chromium browser launched");
   }
+
+  async render(data: DashboardData): Promise<Buffer> {
+    if (!this.browser) {
+      await this.launch();
+    }
+
+    const url = pathToFileURL(TEMPLATE_PATH).href;
+    const page = await this.browser!.newPage({ viewport: { width: 900, height: 800 } });
+
+    try {
+      await page.goto(url);
+      await page.evaluate((d) => {
+        (window as any).__THREAD_DATA__ = d;
+      }, data);
+
+      return Buffer.alloc(0);
+    } finally {
+      await page.close();
+    }
+  }
 }
