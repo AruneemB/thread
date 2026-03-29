@@ -372,6 +372,25 @@
     function render() {
       var data = window.__THREAD_DATA__;
       if (!data) return;
+
+      // Header binding
+      var groupNameEl = document.querySelector('.group-name');
+      if (groupNameEl) groupNameEl.textContent = data.groupName;
+
+      var dateRangeEl = document.querySelector('.date-range');
+      if (dateRangeEl) dateRangeEl.textContent = data.dateRange;
+
+      // Sort button active state
+      var buttons = document.querySelectorAll('.sort-btn');
+      var activeLabel = SORT_MAP[data.sortBy] ? SORT_MAP[data.sortBy].label : 'total messages';
+
+      for (var bi = 0; bi < buttons.length; bi++) {
+        if (buttons[bi].textContent.trim() === activeLabel) {
+          buttons[bi].classList.add('active');
+        } else {
+          buttons[bi].classList.remove('active');
+        }
+      }
     }
 
     window.renderDashboard = render;
