@@ -6,6 +6,7 @@ import pino from "pino";
 const logger = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "renderer" });
 
 const TEMPLATE_PATH = resolve(__dirname, "..", "templates", "dashboard.html");
+const RENDER_TIMEOUT_MS = parseInt(process.env.RENDER_TIMEOUT_MS ?? "15000", 10);
 
 export interface MemberData {
   displayName: string;
@@ -40,16 +41,19 @@ export class DashboardRenderer {
       await this.launch();
     }
 
+    const timeoutMs = RENDER_TIMEOUT_MS;
     const url = pathToFileURL(TEMPLATE_PATH).href;
     const page = await this.browser!.newPage({ viewport: { width: 900, height: 800 } });
 
     try {
-      await page.goto(url);
+      await page.goto(url, { waitUntil: "networkidle", timeout: timeoutMs });
       await page.evaluate((d) => {
         (window as any).__THREAD_DATA__ = d;
       }, data);
+      await page.waitForLoadState("networkidle", { timeout: timeoutMs });
 
-      return Buffer.alloc(0);
+      const buffer = await page.screenshot({ fullPage: true, type: "png", timeout: timeoutMs });
+      return Buffer.from(buffer);
     } finally {
       await page.close();
     }
