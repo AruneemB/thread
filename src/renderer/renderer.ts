@@ -6,7 +6,6 @@ import pino from "pino";
 const logger = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "renderer" });
 
 const TEMPLATE_PATH = resolve(__dirname, "..", "templates", "dashboard.html");
-const RENDER_TIMEOUT_MS = parseInt(process.env.RENDER_TIMEOUT_MS ?? "15000", 10);
 
 export interface MemberData {
   displayName: string;
@@ -65,7 +64,7 @@ export class DashboardRenderer {
   }
 
   private async _doRender(data: DashboardData): Promise<Buffer> {
-    const timeoutMs = RENDER_TIMEOUT_MS;
+    const timeoutMs = parseInt(process.env.RENDER_TIMEOUT_MS ?? "15000", 10);
     const url = pathToFileURL(TEMPLATE_PATH).href;
     const page = await this.browser!.newPage({ viewport: { width: 900, height: 800 } });
 
