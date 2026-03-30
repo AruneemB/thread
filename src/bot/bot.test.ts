@@ -39,6 +39,18 @@ vi.mock("../scheduler/scheduler.js", () => ({
   stopScheduler: vi.fn(),
 }));
 
+vi.mock("../utils/logger.js", () => ({
+  logger: {
+    child: vi.fn(() => ({
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      bindings: vi.fn(() => ({ module: "bot" })),
+    })),
+  },
+}));
+
 describe("Token validation", () => {
   beforeEach(() => {
     vi.resetModules();

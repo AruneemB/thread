@@ -1,6 +1,5 @@
 import cron, { ScheduledTask } from "node-cron";
 import { Bot, InputFile } from "grammy";
-import pino from "pino";
 import { db } from "../db/db.js";
 import type { Database } from "better-sqlite3";
 import {
@@ -12,8 +11,9 @@ import {
 import { renderer } from "../renderer/renderer.js";
 import type { DashboardData, MemberData } from "../renderer/renderer.js";
 import { buildMemberData, formatDateRange } from "../commands/stats.js";
+import { logger } from "../utils/logger.js";
 
-const log = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "scheduler" });
+const log = logger.child({ module: "scheduler" });
 
 const CRON_EXPRESSION = "0 9 * * 1"; // Every Monday at 09:00 UTC
 

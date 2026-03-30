@@ -1,5 +1,8 @@
 import Database from "better-sqlite3";
 import { z } from "zod";
+import { logger } from "../utils/logger.js";
+
+const log = logger.child({ module: "db" });
 
 // --- Zod Validation Schemas ---
 
@@ -75,6 +78,7 @@ function getDb(): Database.Database {
     db = new Database(DATABASE_PATH);
     db.pragma("journal_mode = WAL");
     initSchema(db);
+    log.info({ path: DATABASE_PATH }, "Database opened");
   }
   return db;
 }
@@ -125,4 +129,5 @@ export { instance as db };
 
 export function closeDb(): void {
   instance.close();
+  log.info("Database closed");
 }

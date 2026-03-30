@@ -1,13 +1,13 @@
 import { Bot } from "grammy";
-import pino from "pino";
 import { closeDb } from "../db/db.js";
 import { closeRenderer } from "../renderer/renderer.js";
 import { stopScheduler } from "../scheduler/scheduler.js";
 import { registerMessageHandler } from "./middleware.js";
 import { statsComposer } from "../commands/stats.js";
 import { mystatsComposer } from "../commands/mystats.js";
+import { logger } from "../utils/logger.js";
 
-export const _logger = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "bot" });
+export const _logger = logger.child({ module: "bot" });
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {

@@ -1,9 +1,9 @@
 import { chromium, type Browser } from "playwright";
 import { resolve } from "path";
 import { pathToFileURL } from "url";
-import pino from "pino";
+import { logger as rootLogger } from "../utils/logger.js";
 
-const logger = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "renderer" });
+const logger = rootLogger.child({ module: "renderer" });
 
 const TEMPLATE_PATH = resolve(__dirname, "..", "templates", "dashboard.html");
 
