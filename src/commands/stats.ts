@@ -87,11 +87,35 @@ export function formatDateRange(): string {
   return `${MONTHS[startDate.getUTCMonth()]} ${startDate.getUTCFullYear()} – ${MONTHS[endDate.getUTCMonth()]} ${endDate.getUTCFullYear()}`;
 }
 
+export const cooldowns = new Map<string, number>();
+
+export function getCooldownMs(): number {
+  const seconds = parseInt(process.env.STATS_COOLDOWN_SECONDS ?? "600", 10);
+  return (isNaN(seconds) ? 600 : seconds) * 1000;
+}
+
 export const statsComposer = new Composer();
 
 statsComposer.command("stats", async (ctx) => {
   const chatId = String(ctx.chat.id);
   const groupName = ctx.chat.title ?? "Group Chat";
+
+  // Check cooldown
+  const lastCall = cooldowns.get(chatId);
+  const cooldownMs = getCooldownMs();
+  if (lastCall !== undefined) {
+    const elapsed = Date.now() - lastCall;
+    if (elapsed < cooldownMs) {
+      const remainingMs = cooldownMs - elapsed;
+      const remainingMin = Math.floor(remainingMs / 60000);
+      const remainingSec = Math.ceil((remainingMs % 60000) / 1000);
+      const timeStr = remainingMin > 0
+        ? `${remainingMin}m ${remainingSec}s`
+        : `${remainingSec}s`;
+      await ctx.reply(`Stats are on cooldown. Try again in ${timeStr}.`);
+      return;
+    }
+  }
 
   // Fetch group summary
   const summary = getGroupSummary(chatId);
@@ -134,4 +158,7 @@ statsComposer.command("stats", async (ctx) => {
   await ctx.replyWithPhoto(new InputFile(png, "thread-stats.png"), {
     caption: `Thread — activity report for ${groupName}`,
   });
+
+  // Set cooldown only after successful send
+  cooldowns.set(chatId, Date.now());
 });
