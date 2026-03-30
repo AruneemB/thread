@@ -107,6 +107,18 @@ export function insertMessage(message: Message, database?: Database.Database): D
   return stmt.run(parsed);
 }
 
+export function getMemberByUsername(
+  chatId: string,
+  username: string,
+  database?: Database.Database,
+): { user_id: string; first_name: string } | null {
+  const target = database ?? instance;
+  const row = target.prepare(`
+    SELECT user_id, first_name FROM members WHERE chat_id = ? AND username = ?
+  `).get(chatId, username) as { user_id: string; first_name: string } | undefined;
+  return row ?? null;
+}
+
 // --- Exports ---
 
 export { instance as db };

@@ -1,6 +1,7 @@
 import { Composer, InputFile } from "grammy";
 import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
 import { renderer, type DashboardData, type MemberData } from "../renderer/renderer.js";
+import { getMemberByUsername } from "../db/db.js";
 
 const AVATAR_COLORS = [
   "#e57373", "#f06292", "#ba68c8", "#9575cd",
@@ -119,6 +120,17 @@ statsComposer.command("stats", async (ctx) => {
       await ctx.reply(`Stats are on cooldown. Try again in ${timeStr}.`);
       return;
     }
+  }
+
+  // Single-member lookup by username
+  if (targetUsername !== null) {
+    const member = getMemberByUsername(chatId, targetUsername);
+    if (!member) {
+      await ctx.reply(`I don't have any data for @${targetUsername} yet.`);
+      return;
+    }
+    // Single-member render will be added in the next commit
+    return;
   }
 
   // Fetch group summary
