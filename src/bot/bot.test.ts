@@ -6,11 +6,22 @@ vi.mock("grammy", () => {
     stop = vi.fn();
     on = vi.fn();
     command = vi.fn();
+    use = vi.fn();
   }
-  return { Bot };
+  class Composer {
+    command = vi.fn();
+  }
+  class InputFile {
+    constructor(public data: Buffer, public filename: string) {}
+  }
+  return { Bot, Composer, InputFile };
 });
 
 vi.mock("./middleware.js", () => ({ registerMessageHandler: vi.fn() }));
+
+vi.mock("../commands/stats.js", () => ({
+  statsComposer: { middleware: vi.fn() },
+}));
 
 vi.mock("../db/db.js", () => ({
   closeDb: vi.fn(),
