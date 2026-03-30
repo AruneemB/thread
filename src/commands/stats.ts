@@ -129,4 +129,9 @@ statsComposer.command("stats", async (ctx) => {
     }
     return;
   }
+
+  // Send photo
+  await ctx.replyWithPhoto(new InputFile(png, "thread-stats.png"), {
+    caption: `Thread — activity report for ${groupName}`,
+  });
 });
