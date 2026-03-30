@@ -20,6 +20,13 @@ const CRON_EXPRESSION = "0 9 * * 1"; // Every Monday at 09:00 UTC
 let task: ScheduledTask | null = null;
 
 export function startScheduler(bot: Bot): void {
+  const enabled = (process.env.WEEKLY_DIGEST_ENABLED ?? "true").toLowerCase() !== "false";
+
+  if (!enabled) {
+    log.info("Weekly digest disabled via WEEKLY_DIGEST_ENABLED");
+    return;
+  }
+
   log.info("Starting scheduler");
 
   task = cron.schedule(
