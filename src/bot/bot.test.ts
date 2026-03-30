@@ -35,6 +35,10 @@ vi.mock("../renderer/renderer.js", () => ({
   closeRenderer: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../scheduler/scheduler.js", () => ({
+  stopScheduler: vi.fn(),
+}));
+
 describe("Token validation", () => {
   beforeEach(() => {
     vi.resetModules();

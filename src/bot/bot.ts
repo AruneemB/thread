@@ -2,6 +2,7 @@ import { Bot } from "grammy";
 import pino from "pino";
 import { closeDb } from "../db/db.js";
 import { closeRenderer } from "../renderer/renderer.js";
+import { stopScheduler } from "../scheduler/scheduler.js";
 import { registerMessageHandler } from "./middleware.js";
 import { statsComposer } from "../commands/stats.js";
 import { mystatsComposer } from "../commands/mystats.js";
@@ -31,6 +32,12 @@ export async function _shutdown(signal: string): Promise<void> {
     bot.stop();
   } catch (err) {
     _logger.error({ err }, "Error stopping bot");
+  }
+
+  try {
+    stopScheduler();
+  } catch (err) {
+    _logger.error({ err }, "Error stopping scheduler");
   }
 
   try {
