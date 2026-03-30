@@ -23,6 +23,10 @@ vi.mock("../commands/stats.js", () => ({
   statsComposer: { middleware: vi.fn() },
 }));
 
+vi.mock("../commands/mystats.js", () => ({
+  mystatsComposer: { middleware: vi.fn() },
+}));
+
 vi.mock("../db/db.js", () => ({
   closeDb: vi.fn(),
 }));
