@@ -1,6 +1,8 @@
 import cron, { ScheduledTask } from "node-cron";
 import { Bot } from "grammy";
 import { logger } from "../utils/logger.js";
+import { db } from "../db/db.js";
+import type { Database } from "better-sqlite3";
 
 const log = logger.child({ module: "scheduler" });
 
@@ -30,7 +32,15 @@ export function stopScheduler(): void {
   }
 }
 
+export function getActiveChatIds(database: Database = db): string[] {
+  const sql = `SELECT DISTINCT chat_id FROM messages WHERE date >= date('now', '-7 days')`;
+  const rows = database.prepare(sql).all() as { chat_id: string }[];
+  return rows.map((row) => row.chat_id);
+}
+
 async function runWeeklyDigest(bot: Bot): Promise<void> {
   log.info("Running weekly digest job");
-  // Implementation will be added in subsequent commits
+  const chatIds = getActiveChatIds();
+  log.info({ count: chatIds.length }, "Found active chats");
+  // Digest generation will be added in next commit
 }
