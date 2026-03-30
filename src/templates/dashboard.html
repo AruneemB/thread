@@ -369,6 +369,125 @@
       return 'cell-4';
     }
 
+    function buildMemberCard(member) {
+      var card = document.createElement('div');
+      card.className = 'member-card';
+
+      // Header
+      var header = document.createElement('div');
+      header.className = 'member-header';
+
+      var info = document.createElement('div');
+      info.className = 'member-info';
+
+      var avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.style.background = member.avatarColor;
+      avatar.textContent = member.initials;
+
+      var name = document.createElement('span');
+      name.className = 'display-name';
+      name.textContent = member.displayName;
+
+      var role = document.createElement('span');
+      role.className = 'role-label';
+      role.textContent = member.role;
+
+      info.appendChild(avatar);
+      info.appendChild(name);
+      info.appendChild(role);
+
+      var stats = document.createElement('div');
+      stats.className = 'member-stats';
+
+      var msgStat = document.createElement('span');
+      msgStat.className = 'stat';
+      msgStat.textContent = formatNumber(member.totalMessages) + ' msgs';
+
+      var streakStat = document.createElement('span');
+      streakStat.className = 'stat';
+      streakStat.textContent = member.currentStreak + 'd';
+
+      var longestStat = document.createElement('span');
+      longestStat.className = 'stat';
+      longestStat.textContent = member.longestStreak + 'd';
+
+      stats.appendChild(msgStat);
+      stats.appendChild(streakStat);
+      stats.appendChild(longestStat);
+
+      header.appendChild(info);
+      header.appendChild(stats);
+      card.appendChild(header);
+
+      // Calendar placeholder (all cell-0)
+      var calWrapper = document.createElement('div');
+      calWrapper.className = 'calendar-wrapper';
+
+      var dayLabels = document.createElement('div');
+      dayLabels.className = 'day-labels';
+      var dayTexts = ['M', '', 'W', '', 'F', '', ''];
+      for (var d = 0; d < 7; d++) {
+        var dl = document.createElement('span');
+        dl.className = 'day-label';
+        dl.textContent = dayTexts[d];
+        dayLabels.appendChild(dl);
+      }
+
+      var calColumn = document.createElement('div');
+      calColumn.className = 'calendar-column';
+
+      var monthRow = document.createElement('div');
+      monthRow.className = 'month-labels';
+
+      var grid = document.createElement('div');
+      grid.className = 'calendar-grid';
+      for (var i = 0; i < 371; i++) {
+        var cell = document.createElement('div');
+        cell.className = 'cell cell-0';
+        grid.appendChild(cell);
+      }
+
+      calColumn.appendChild(monthRow);
+      calColumn.appendChild(grid);
+      calWrapper.appendChild(dayLabels);
+      calWrapper.appendChild(calColumn);
+      card.appendChild(calWrapper);
+
+      // Streak pills
+      var pills = document.createElement('div');
+      pills.className = 'streak-pills';
+
+      var currentPill = document.createElement('span');
+      currentPill.className = 'pill ' + (member.currentStreak > 0 ? 'pill-active' : 'pill-grey');
+      currentPill.textContent = member.currentStreak + ' day streak';
+
+      var bestPill = document.createElement('span');
+      bestPill.className = 'pill pill-grey';
+      bestPill.textContent = 'Best: ' + member.longestStreak + ' days';
+
+      var activePill = document.createElement('span');
+      activePill.className = 'pill pill-grey';
+      activePill.textContent = member.activeDays + ' active';
+
+      pills.appendChild(currentPill);
+      pills.appendChild(bestPill);
+      pills.appendChild(activePill);
+      card.appendChild(pills);
+
+      return card;
+    }
+
+    function renderCards(container, members, sortKey) {
+      container.innerHTML = '';
+      var sorted = members.slice().sort(function (a, b) {
+        return b[sortKey] - a[sortKey];
+      });
+      for (var i = 0; i < sorted.length; i++) {
+        container.appendChild(buildMemberCard(sorted[i]));
+      }
+    }
+
     function render() {
       var data = window.__THREAD_DATA__;
       if (!data) return;
@@ -383,6 +502,7 @@
       // Sort button active state
       var buttons = document.querySelectorAll('.sort-btn');
       var activeLabel = SORT_MAP[data.sortBy] ? SORT_MAP[data.sortBy].label : 'total messages';
+      var activeSortKey = SORT_MAP[data.sortBy] ? SORT_MAP[data.sortBy].key : 'totalMessages';
 
       for (var bi = 0; bi < buttons.length; bi++) {
         if (buttons[bi].textContent.trim() === activeLabel) {
@@ -390,6 +510,12 @@
         } else {
           buttons[bi].classList.remove('active');
         }
+      }
+
+      // Member cards
+      var container = document.querySelector('.cards-container');
+      if (container) {
+        renderCards(container, data.members, activeSortKey);
       }
     }
 
