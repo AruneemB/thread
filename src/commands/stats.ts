@@ -129,7 +129,41 @@ statsComposer.command("stats", async (ctx) => {
       await ctx.reply(`I don't have any data for @${targetUsername} yet.`);
       return;
     }
-    // Single-member render will be added in the next commit
+    const dailyCounts = getDailyCountsForUser(chatId, member.user_id, 52);
+    const streaks = computeStreaks(dailyCounts);
+    const total = getTotalMessages(chatId, member.user_id);
+    const memberData = buildMemberData(
+      { user_id: member.user_id, first_name: member.first_name, totalCount: total },
+      dailyCounts,
+      streaks,
+      total,
+    );
+
+    const dashboardData: DashboardData = {
+      groupName,
+      dateRange: formatDateRange(),
+      sortBy: "messages",
+      members: [memberData],
+    };
+
+    let png: Buffer;
+    try {
+      png = await renderer.render(dashboardData);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("Timeout") || message.includes("timeout")) {
+        await ctx.reply("Render timed out. Try again in a moment.");
+      } else {
+        await ctx.reply("Something went wrong generating the report.");
+      }
+      return;
+    }
+
+    await ctx.replyWithPhoto(new InputFile(png, "thread-stats.png"), {
+      caption: `Thread — activity report for ${groupName}`,
+    });
+
+    cooldowns.set(chatId, Date.now());
     return;
   }
 
