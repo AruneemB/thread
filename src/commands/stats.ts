@@ -1,6 +1,6 @@
 import { Composer, InputFile } from "grammy";
 import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
-import type { DashboardData, MemberData } from "../renderer/renderer.js";
+import { renderer, type DashboardData, type MemberData } from "../renderer/renderer.js";
 
 const AVATAR_COLORS = [
   "#e57373", "#f06292", "#ba68c8", "#9575cd",
@@ -116,5 +116,17 @@ statsComposer.command("stats", async (ctx) => {
     members,
   };
 
-  await ctx.reply("Stats coming soon.");
+  // Render PNG
+  let png: Buffer;
+  try {
+    png = await renderer.render(dashboardData);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("Timeout") || message.includes("timeout")) {
+      await ctx.reply("Render timed out. Try again in a moment.");
+    } else {
+      await ctx.reply("Something went wrong generating the report.");
+    }
+    return;
+  }
 });
