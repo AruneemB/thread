@@ -11,6 +11,10 @@ vi.mock("../renderer/renderer.js", () => ({
   renderer: { render: vi.fn() },
 }));
 
+vi.mock("../db/db.js", () => ({
+  getMemberByUsername: vi.fn(),
+}));
+
 vi.mock("grammy", () => {
   class Composer {
     private handlers: Record<string, Function> = {};
@@ -29,6 +33,7 @@ vi.mock("grammy", () => {
 
 import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
 import { renderer } from "../renderer/renderer.js";
+import { getMemberByUsername } from "../db/db.js";
 import { statsComposer, cooldowns, getCooldownMs, buildCells, buildMemberData, avatarColorFromId, initialsFrom } from "./stats.js";
 
 const mockGetGroupSummary = getGroupSummary as ReturnType<typeof vi.fn>;
@@ -36,17 +41,20 @@ const mockGetDailyCounts = getDailyCountsForUser as ReturnType<typeof vi.fn>;
 const mockComputeStreaks = computeStreaks as ReturnType<typeof vi.fn>;
 const mockGetTotalMessages = getTotalMessages as ReturnType<typeof vi.fn>;
 const mockRender = renderer.render as ReturnType<typeof vi.fn>;
+const mockGetMemberByUsername = getMemberByUsername as ReturnType<typeof vi.fn>;
 
 function makeCtx(overrides: Record<string, unknown> = {}) {
   return {
     chat: { id: -100123, title: "Test Group", ...(overrides.chat as Record<string, unknown> ?? {}) },
+    match: overrides.match ?? "",
+    from: overrides.from ?? { id: 42, first_name: "Test User" },
     reply: vi.fn(),
     replyWithPhoto: vi.fn(),
   };
 }
 
-function getHandler() {
-  return (statsComposer as any)._getHandler("stats");
+function getHandler(name = "stats") {
+  return (statsComposer as any)._getHandler(name);
 }
 
 function setupDefaultMocks(memberCount = 2) {
@@ -312,5 +320,138 @@ describe("Helper functions", () => {
     expect(result.longestStreak).toBe(5);
     expect(result.activeDays).toBe(0);
     expect(result.cells).toHaveLength(371);
+  });
+});
+
+describe("/stats @username", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    cooldowns.clear();
+    delete process.env.STATS_COOLDOWN_SECONDS;
+  });
+
+  afterEach(() => {
+    cooldowns.clear();
+  });
+
+  it("parses username from @alice", async () => {
+    setupDefaultMocks();
+    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    const ctx = makeCtx({ match: "@alice" });
+    await getHandler()(ctx);
+    expect(mockGetMemberByUsername).toHaveBeenCalledWith("-100123", "alice");
+  });
+
+  it("parses username with extra space", async () => {
+    setupDefaultMocks();
+    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    const ctx = makeCtx({ match: "  @alice  " });
+    await getHandler()(ctx);
+    expect(mockGetMemberByUsername).toHaveBeenCalledWith("-100123", "alice");
+  });
+
+  it("preserves original casing for DB lookup", async () => {
+    setupDefaultMocks();
+    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    const ctx = makeCtx({ match: "@Alice" });
+    await getHandler()(ctx);
+    expect(mockGetMemberByUsername).toHaveBeenCalledWith("-100123", "Alice");
+  });
+
+  it("renders single-member dashboard for known user", async () => {
+    setupDefaultMocks();
+    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    mockGetTotalMessages.mockReturnValue(50);
+    const ctx = makeCtx({ match: "@alice" });
+    await getHandler()(ctx);
+    expect(mockRender).toHaveBeenCalledTimes(1);
+    const data = mockRender.mock.calls[0][0];
+    expect(data.members).toHaveLength(1);
+    expect(data.members[0].displayName).toBe("Alice");
+  });
+
+  it("replies with not-found message for unknown user", async () => {
+    setupDefaultMocks();
+    mockGetMemberByUsername.mockReturnValue(null);
+    const ctx = makeCtx({ match: "@unknown" });
+    await getHandler()(ctx);
+    expect(ctx.reply).toHaveBeenCalledWith("I don't have any data for @unknown yet.");
+    expect(mockRender).not.toHaveBeenCalled();
+  });
+
+  it("single-member DashboardData has exactly 1 entry in members[]", async () => {
+    setupDefaultMocks();
+    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    mockGetTotalMessages.mockReturnValue(50);
+    const ctx = makeCtx({ match: "@alice" });
+    await getHandler()(ctx);
+    const data = mockRender.mock.calls[0][0];
+    expect(data.members.length).toBe(1);
+  });
+
+  it("shares cooldown with /stats (same chat, same timer)", async () => {
+    setupDefaultMocks();
+    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    mockGetTotalMessages.mockReturnValue(50);
+    // First call: /stats @alice
+    const ctx1 = makeCtx({ match: "@alice" });
+    await getHandler()(ctx1);
+    expect(ctx1.replyWithPhoto).toHaveBeenCalled();
+    // Second call: /stats (group) - should be on cooldown
+    const ctx2 = makeCtx();
+    await getHandler()(ctx2);
+    expect(ctx2.reply).toHaveBeenCalledWith(expect.stringContaining("cooldown"));
+  });
+});
+
+describe("/threadhelp command", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("replies with a text message", async () => {
+    const ctx = makeCtx();
+    await getHandler("threadhelp")(ctx);
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
+    expect(ctx.replyWithPhoto).not.toHaveBeenCalled();
+  });
+
+  it("response contains /stats", async () => {
+    const ctx = makeCtx();
+    await getHandler("threadhelp")(ctx);
+    const text = ctx.reply.mock.calls[0][0] as string;
+    expect(text).toContain("/stats");
+  });
+
+  it("response contains /stats @username", async () => {
+    const ctx = makeCtx();
+    await getHandler("threadhelp")(ctx);
+    const text = ctx.reply.mock.calls[0][0] as string;
+    expect(text).toContain("/stats @username");
+  });
+
+  it("response contains /mystats", async () => {
+    const ctx = makeCtx();
+    await getHandler("threadhelp")(ctx);
+    const text = ctx.reply.mock.calls[0][0] as string;
+    expect(text).toContain("/mystats");
+  });
+
+  it("response contains /threadhelp", async () => {
+    const ctx = makeCtx();
+    await getHandler("threadhelp")(ctx);
+    const text = ctx.reply.mock.calls[0][0] as string;
+    expect(text).toContain("/threadhelp");
+  });
+
+  it("each command has a brief description", async () => {
+    const ctx = makeCtx();
+    await getHandler("threadhelp")(ctx);
+    const text = ctx.reply.mock.calls[0][0] as string;
+    // Each line should have a command and a description separated by —
+    const lines = text.split("\n").filter((l: string) => l.trim().length > 0);
+    for (const line of lines) {
+      expect(line).toMatch(/^\/\S+.*—.+/);
+    }
   });
 });
