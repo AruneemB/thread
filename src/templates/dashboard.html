@@ -369,7 +369,28 @@
       return 'cell-4';
     }
 
-    function buildMemberCard(member) {
+    function computeMonthLabels() {
+      var now = new Date();
+      var todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+      var dayOfWeek = new Date(todayUTC).getUTCDay();
+      var mondayOffset = (dayOfWeek === 0) ? 6 : dayOfWeek - 1;
+      var thisMonday = todayUTC - mondayOffset * 86400000;
+      var startMonday = thisMonday - 52 * 7 * 86400000;
+
+      var labels = [];
+      var prevMonth = -1;
+      for (var col = 0; col < 53; col++) {
+        var colDate = new Date(startMonday + col * 7 * 86400000);
+        var m = colDate.getUTCMonth();
+        if (m !== prevMonth) {
+          labels.push({ month: MONTH_NAMES[m], left: col * 13 });
+          prevMonth = m;
+        }
+      }
+      return labels;
+    }
+
+    function buildMemberCard(member, monthLabels) {
       var card = document.createElement('div');
       card.className = 'member-card';
 
@@ -439,12 +460,27 @@
 
       var monthRow = document.createElement('div');
       monthRow.className = 'month-labels';
+      for (var mi = 0; mi < monthLabels.length; mi++) {
+        var ml = document.createElement('span');
+        ml.className = 'month-label';
+        ml.style.left = monthLabels[mi].left + 'px';
+        ml.textContent = monthLabels[mi].month;
+        monthRow.appendChild(ml);
+      }
 
       var grid = document.createElement('div');
       grid.className = 'calendar-grid';
+
+      var cells = member.cells;
+      var maxCount = 0;
+      for (var ci = 0; ci < cells.length; ci++) {
+        if (cells[ci] > maxCount) maxCount = cells[ci];
+      }
+
       for (var i = 0; i < 371; i++) {
         var cell = document.createElement('div');
-        cell.className = 'cell cell-0';
+        var count = i < cells.length ? cells[i] : 0;
+        cell.className = 'cell ' + cellClass(count, maxCount);
         grid.appendChild(cell);
       }
 
@@ -483,8 +519,9 @@
       var sorted = members.slice().sort(function (a, b) {
         return b[sortKey] - a[sortKey];
       });
+      var monthLabels = computeMonthLabels();
       for (var i = 0; i < sorted.length; i++) {
-        container.appendChild(buildMemberCard(sorted[i]));
+        container.appendChild(buildMemberCard(sorted[i], monthLabels));
       }
     }
 
