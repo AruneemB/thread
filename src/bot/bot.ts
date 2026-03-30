@@ -3,6 +3,7 @@ import pino from "pino";
 import { closeDb } from "../db/db.js";
 import { closeRenderer } from "../renderer/renderer.js";
 import { registerMessageHandler } from "./middleware.js";
+import { statsComposer } from "../commands/stats.js";
 
 export const _logger = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "bot" });
 
@@ -14,6 +15,7 @@ _logger.info("Bot token loaded");
 
 export const bot = new Bot(token);
 registerMessageHandler(bot, _logger);
+bot.use(statsComposer);
 _logger.info("Bot instance created");
 
 let shuttingDown = false;
