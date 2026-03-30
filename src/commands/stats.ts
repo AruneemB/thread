@@ -1,4 +1,6 @@
 import { Composer, InputFile } from "grammy";
+import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
+import type { DashboardData, MemberData } from "../renderer/renderer.js";
 
 const AVATAR_COLORS = [
   "#e57373", "#f06292", "#ba68c8", "#9575cd",
@@ -56,7 +58,7 @@ export function buildMemberData(
   dailyCounts: Map<string, number>,
   streaks: { current: number; longest: number },
   totalMessages: number,
-): import("../renderer/renderer.js").MemberData {
+): MemberData {
   return {
     displayName: member.first_name,
     initials: initialsFrom(member.first_name),
@@ -70,8 +72,49 @@ export function buildMemberData(
   };
 }
 
+export function formatDateRange(): string {
+  const now = new Date();
+  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const dayOfWeek = new Date(todayUTC).getUTCDay();
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const thisMonday = todayUTC - mondayOffset * 86400000;
+  const startMonday = thisMonday - 52 * 7 * 86400000;
+
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const startDate = new Date(startMonday);
+  const endDate = new Date(todayUTC);
+
+  return `${MONTHS[startDate.getUTCMonth()]} ${startDate.getUTCFullYear()} – ${MONTHS[endDate.getUTCMonth()]} ${endDate.getUTCFullYear()}`;
+}
+
 export const statsComposer = new Composer();
 
 statsComposer.command("stats", async (ctx) => {
+  const chatId = String(ctx.chat.id);
+  const groupName = ctx.chat.title ?? "Group Chat";
+
+  // Fetch group summary
+  const summary = getGroupSummary(chatId);
+  if (summary.topMembers.length === 0) {
+    await ctx.reply("No message data yet. Start chatting and try again later.");
+    return;
+  }
+
+  // Build member data
+  const members: MemberData[] = [];
+  for (const tm of summary.topMembers) {
+    const dailyCounts = getDailyCountsForUser(chatId, tm.user_id, 52);
+    const streaks = computeStreaks(dailyCounts);
+    const total = getTotalMessages(chatId, tm.user_id);
+    members.push(buildMemberData(tm, dailyCounts, streaks, total));
+  }
+
+  const dashboardData: DashboardData = {
+    groupName,
+    dateRange: formatDateRange(),
+    sortBy: "messages",
+    members,
+  };
+
   await ctx.reply("Stats coming soon.");
 });
