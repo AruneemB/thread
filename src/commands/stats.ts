@@ -212,3 +212,12 @@ statsComposer.command("stats", async (ctx) => {
   // Set cooldown only after successful send
   cooldowns.set(chatId, Date.now());
 });
+
+statsComposer.command("threadhelp", async (ctx) => {
+  await ctx.reply(
+    `/stats — Generate the full group activity dashboard\n` +
+    `/stats @username — View a single member's activity card\n` +
+    `/mystats — Get your personal stats sent via DM\n` +
+    `/threadhelp — Show this help message`,
+  );
+});
