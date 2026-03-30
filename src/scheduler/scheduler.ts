@@ -1,8 +1,17 @@
 import cron, { ScheduledTask } from "node-cron";
-import { Bot } from "grammy";
+import { Bot, InputFile } from "grammy";
 import { logger } from "../utils/logger.js";
 import { db } from "../db/db.js";
 import type { Database } from "better-sqlite3";
+import {
+  getGroupSummary,
+  getDailyCountsForUser,
+  computeStreaks,
+  getTotalMessages,
+} from "../logic/stats.js";
+import { renderer } from "../renderer/renderer.js";
+import type { DashboardData } from "../renderer/renderer.js";
+import { buildMemberData, formatDateRange } from "../commands/stats.js";
 
 const log = logger.child({ module: "scheduler" });
 
@@ -38,9 +47,58 @@ export function getActiveChatIds(database: Database = db): string[] {
   return rows.map((row) => row.chat_id);
 }
 
+function formatWeeklyRange(): string {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(now.getDate() - 7);
+
+  const formatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+  const startStr = formatter.format(sevenDaysAgo);
+  const endStr = formatter.format(now);
+
+  return `${startStr} – ${endStr}`;
+}
+
 async function runWeeklyDigest(bot: Bot): Promise<void> {
   log.info("Running weekly digest job");
   const chatIds = getActiveChatIds();
   log.info({ count: chatIds.length }, "Found active chats");
-  // Digest generation will be added in next commit
+
+  for (const chatId of chatIds) {
+    try {
+      // Get chat title
+      let chatTitle = "Group Chat";
+      try {
+        const chat = await bot.api.getChat(chatId);
+        if (chat.type === "group" || chat.type === "supergroup") {
+          chatTitle = chat.title;
+        }
+      } catch (error) {
+        log.warn({ chatId, error }, "Failed to get chat title, using fallback");
+      }
+
+      // Get group summary and build dashboard
+      const summary = getGroupSummary(chatId);
+      const members = buildMemberData(summary.topUsers, chatId);
+
+      const dashboardData: DashboardData = {
+        chatTitle,
+        dateRange: formatDateRange(),
+        members,
+      };
+
+      const imageBuffer = await renderer.render(dashboardData);
+
+      // Send digest
+      await bot.api.sendPhoto(chatId, new InputFile(imageBuffer), {
+        caption: `Thread — weekly recap · ${formatWeeklyRange()}`,
+      });
+
+      log.info({ chatId, chatTitle }, "Weekly digest sent successfully");
+    } catch (error) {
+      log.error({ chatId, error }, "Failed to send weekly digest");
+    }
+  }
+
+  log.info("Weekly digest job completed");
 }
