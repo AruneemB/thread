@@ -64,7 +64,8 @@ export class DashboardRenderer {
   }
 
   private async _doRender(data: DashboardData): Promise<Buffer> {
-    const timeoutMs = parseInt(process.env.RENDER_TIMEOUT_MS ?? "15000", 10);
+    const parsed = parseInt(process.env.RENDER_TIMEOUT_MS ?? "15000", 10);
+    const timeoutMs = isNaN(parsed) ? 15000 : parsed;
     const url = pathToFileURL(TEMPLATE_PATH).href;
     const page = await this.browser!.newPage({ viewport: { width: 900, height: 800 } });
 
