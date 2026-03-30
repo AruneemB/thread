@@ -100,6 +100,10 @@ statsComposer.command("stats", async (ctx) => {
   const chatId = String(ctx.chat.id);
   const groupName = ctx.chat.title ?? "Group Chat";
 
+  const rawMatch = typeof ctx.match === "string" ? ctx.match.trim() : "";
+  const usernameMatch = rawMatch.match(/^@(\S+)$/);
+  const targetUsername = usernameMatch ? usernameMatch[1] : null;
+
   // Check cooldown
   const lastCall = cooldowns.get(chatId);
   const cooldownMs = getCooldownMs();
