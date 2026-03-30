@@ -554,6 +554,30 @@
       if (container) {
         renderCards(container, data.members, activeSortKey);
       }
+
+      // Sort button click handlers
+      for (var si = 0; si < buttons.length; si++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            var btnLabel = btn.textContent.trim();
+            var sortKey = 'totalMessages';
+            var entries = Object.keys(SORT_MAP);
+            for (var ei = 0; ei < entries.length; ei++) {
+              if (SORT_MAP[entries[ei]].label === btnLabel) {
+                sortKey = SORT_MAP[entries[ei]].key;
+                break;
+              }
+            }
+            for (var r = 0; r < buttons.length; r++) {
+              buttons[r].classList.remove('active');
+            }
+            btn.classList.add('active');
+            if (container) {
+              renderCards(container, data.members, sortKey);
+            }
+          });
+        })(buttons[si]);
+      }
     }
 
     window.renderDashboard = render;
