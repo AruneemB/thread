@@ -1,6 +1,6 @@
 import cron, { ScheduledTask } from "node-cron";
 import { Bot, InputFile } from "grammy";
-import { logger } from "../utils/logger.js";
+import pino from "pino";
 import { db } from "../db/db.js";
 import type { Database } from "better-sqlite3";
 import {
@@ -10,10 +10,10 @@ import {
   getTotalMessages,
 } from "../logic/stats.js";
 import { renderer } from "../renderer/renderer.js";
-import type { DashboardData } from "../renderer/renderer.js";
+import type { DashboardData, MemberData } from "../renderer/renderer.js";
 import { buildMemberData, formatDateRange } from "../commands/stats.js";
 
-const log = logger.child({ module: "scheduler" });
+const log = pino({ level: process.env.LOG_LEVEL ?? "info" }).child({ module: "scheduler" });
 
 const CRON_EXPRESSION = "0 9 * * 1"; // Every Monday at 09:00 UTC
 
@@ -86,11 +86,18 @@ async function runWeeklyDigest(bot: Bot): Promise<void> {
 
       // Get group summary and build dashboard
       const summary = getGroupSummary(chatId);
-      const members = buildMemberData(summary.topUsers, chatId);
+      const members: MemberData[] = [];
+      for (const tm of summary.topMembers) {
+        const dailyCounts = getDailyCountsForUser(chatId, tm.user_id, 52);
+        const streaks = computeStreaks(dailyCounts);
+        const total = getTotalMessages(chatId, tm.user_id);
+        members.push(buildMemberData(tm, dailyCounts, streaks, total));
+      }
 
       const dashboardData: DashboardData = {
-        chatTitle,
+        groupName: chatTitle,
         dateRange: formatDateRange(),
+        sortBy: "messages",
         members,
       };
 
