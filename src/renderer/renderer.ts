@@ -1,11 +1,13 @@
-import { chromium, type Browser } from "playwright";
+import puppeteer, { type Browser } from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import { resolve } from "path";
-import { pathToFileURL } from "url";
+import { readFileSync } from "fs";
 import { logger as rootLogger } from "../utils/logger.js";
 
 const logger = rootLogger.child({ module: "renderer" });
 
 const TEMPLATE_PATH = resolve(__dirname, "..", "templates", "dashboard.html");
+const templateHtml = readFileSync(TEMPLATE_PATH, "utf-8");
 
 export interface MemberData {
   displayName: string;
@@ -26,73 +28,54 @@ export interface DashboardData {
   members: MemberData[];
 }
 
+async function renderDashboard(data: DashboardData): Promise<Buffer> {
+  const parsed = parseInt(process.env.RENDER_TIMEOUT_MS ?? "30000", 10);
+  const timeoutMs = isNaN(parsed) ? 30000 : parsed;
+
+  logger.info("Launching Chromium browser for render");
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: { width: 900, height: 800 },
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(templateHtml, { waitUntil: "networkidle0", timeout: timeoutMs });
+    await page.evaluate((d) => {
+      (window as any).__THREAD_DATA__ = d;
+      if (typeof (window as any).renderDashboard === 'function') {
+        (window as any).renderDashboard();
+      }
+    }, data);
+
+    const buffer = await page.screenshot({ fullPage: true, type: "png" });
+    logger.info("Screenshot captured successfully");
+    return Buffer.from(buffer);
+  } finally {
+    await browser.close();
+    logger.info("Chromium browser closed");
+  }
+}
+
+// Keep DashboardRenderer class for API compatibility
 export class DashboardRenderer {
-  private browser: Browser | null = null;
+  async render(data: DashboardData): Promise<Buffer> {
+    return await renderDashboard(data);
+  }
 
   async launch(): Promise<void> {
-    logger.info("Launching Chromium browser");
-    this.browser = await chromium.launch();
-    logger.info("Chromium browser launched");
+    // No-op for serverless compatibility
   }
 
   async close(): Promise<void> {
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-      logger.info("Chromium browser closed");
-    }
-  }
-
-  private async ensureBrowser(): Promise<void> {
-    if (!this.browser || !this.browser.isConnected()) {
-      if (this.browser) {
-        logger.warn("Browser disconnected, relaunching");
-      }
-      await this.launch();
-    }
-  }
-
-  async render(data: DashboardData): Promise<Buffer> {
-    await this.ensureBrowser();
-    try {
-      return await this._doRender(data);
-    } catch (err) {
-      logger.warn({ err }, "Render failed, relaunching browser and retrying");
-      await this.launch();
-      return await this._doRender(data);
-    }
-  }
-
-  private async _doRender(data: DashboardData): Promise<Buffer> {
-    const parsed = parseInt(process.env.RENDER_TIMEOUT_MS ?? "15000", 10);
-    const timeoutMs = isNaN(parsed) ? 15000 : parsed;
-    const url = pathToFileURL(TEMPLATE_PATH).href;
-    const page = await this.browser!.newPage({ viewport: { width: 900, height: 800 } });
-
-    try {
-      await page.goto(url, { waitUntil: "networkidle", timeout: timeoutMs });
-      await page.evaluate((d) => {
-        (window as any).__THREAD_DATA__ = d;
-        if (typeof (window as any).renderDashboard === 'function') {
-          (window as any).renderDashboard();
-        }
-      }, data);
-      await page.waitForLoadState("networkidle", { timeout: timeoutMs });
-
-      const buffer = await page.screenshot({ fullPage: true, type: "png", timeout: timeoutMs });
-      return Buffer.from(buffer);
-    } finally {
-      await page.close();
-    }
+    // No-op for serverless compatibility
   }
 }
 
 export const renderer = new DashboardRenderer();
 
 export async function closeRenderer(): Promise<void> {
-  try {
-    await renderer.close();
-  } catch (err) {
-    logger.error({ err }, "Error closing renderer");
-  }
+  // No-op for serverless compatibility
 }

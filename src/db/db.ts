@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { createClient, type Client, type ResultSet } from "@libsql/client";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
 
@@ -30,8 +30,8 @@ export type Member = z.infer<typeof MemberSchema>;
 
 // --- Schema Initialization ---
 
-export function initSchema(database: Database.Database): void {
-  database.exec(`
+async function initSchema(client: Client): Promise<void> {
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS messages (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       chat_id     TEXT    NOT NULL,
@@ -45,7 +45,7 @@ export function initSchema(database: Database.Database): void {
     )
   `);
 
-  database.exec(`
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS members (
       chat_id     TEXT NOT NULL,
       user_id     TEXT NOT NULL,
@@ -56,78 +56,153 @@ export function initSchema(database: Database.Database): void {
     )
   `);
 
-  database.exec(`
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS cooldowns (
+      chat_id TEXT PRIMARY KEY,
+      last_stats_at TEXT NOT NULL
+    )
+  `);
+
+  await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_messages_chat_user_date
       ON messages(chat_id, user_id, date)
   `);
 
-  database.exec(`
+  await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_messages_chat_date
       ON messages(chat_id, date)
   `);
 }
 
-// --- Singleton Connection ---
+// --- Client Connection ---
 
-const DATABASE_PATH = process.env.DATABASE_PATH ?? "./thread.db";
+const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL ?? "file:./thread.db";
+const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
 
-let db: Database.Database | null = null;
+let db: Client | null = null;
+let schemaInitialized = false;
 
-function getDb(): Database.Database {
+async function getDb(): Promise<Client> {
   if (!db) {
-    db = new Database(DATABASE_PATH);
-    db.pragma("journal_mode = WAL");
-    initSchema(db);
-    log.info({ path: DATABASE_PATH }, "Database opened");
+    if (TURSO_DATABASE_URL.startsWith("file:")) {
+      // Local development mode
+      db = createClient({ url: TURSO_DATABASE_URL });
+      log.info({ url: TURSO_DATABASE_URL }, "Database opened (local file)");
+    } else {
+      // Turso remote mode
+      db = createClient({
+        url: TURSO_DATABASE_URL,
+        authToken: TURSO_AUTH_TOKEN,
+      });
+      log.info({ url: TURSO_DATABASE_URL }, "Database opened (Turso remote)");
+    }
   }
+
+  if (!schemaInitialized) {
+    await initSchema(db);
+    schemaInitialized = true;
+  }
+
   return db;
 }
 
-const instance = getDb();
-
 // --- Data Access Functions ---
 
-export function upsertMember(member: Member, database?: Database.Database): Database.RunResult {
+export async function upsertMember(member: Member): Promise<ResultSet> {
   const parsed = MemberSchema.parse(member);
-  const target = database ?? instance;
-  const stmt = target.prepare(`
-    INSERT INTO members (chat_id, user_id, username, first_name, last_seen)
-    VALUES (@chat_id, @user_id, @username, @first_name, @last_seen)
-    ON CONFLICT(chat_id, user_id) DO UPDATE SET
-      username = excluded.username,
-      first_name = excluded.first_name,
-      last_seen = excluded.last_seen
-  `);
-  return stmt.run(parsed);
+  const client = await getDb();
+  return await client.execute({
+    sql: `
+      INSERT INTO members (chat_id, user_id, username, first_name, last_seen)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(chat_id, user_id) DO UPDATE SET
+        username = excluded.username,
+        first_name = excluded.first_name,
+        last_seen = excluded.last_seen
+    `,
+    args: [parsed.chat_id, parsed.user_id, parsed.username, parsed.first_name, parsed.last_seen],
+  });
 }
 
-export function insertMessage(message: Message, database?: Database.Database): Database.RunResult {
+export async function insertMessage(message: Message): Promise<ResultSet> {
   const parsed = MessageSchema.parse(message);
-  const target = database ?? instance;
-  const stmt = target.prepare(`
-    INSERT INTO messages (chat_id, user_id, username, first_name, date, hour, dow, msg_length)
-    VALUES (@chat_id, @user_id, @username, @first_name, @date, @hour, @dow, @msg_length)
-  `);
-  return stmt.run(parsed);
+  const client = await getDb();
+  return await client.execute({
+    sql: `
+      INSERT INTO messages (chat_id, user_id, username, first_name, date, hour, dow, msg_length)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    args: [
+      parsed.chat_id,
+      parsed.user_id,
+      parsed.username,
+      parsed.first_name,
+      parsed.date,
+      parsed.hour,
+      parsed.dow,
+      parsed.msg_length,
+    ],
+  });
 }
 
-export function getMemberByUsername(
+export async function getMemberByUsername(
   chatId: string,
   username: string,
-  database?: Database.Database,
-): { user_id: string; first_name: string } | null {
-  const target = database ?? instance;
-  const row = target.prepare(`
-    SELECT user_id, first_name FROM members WHERE chat_id = ? AND username = ?
-  `).get(chatId, username) as { user_id: string; first_name: string } | undefined;
-  return row ?? null;
+): Promise<{ user_id: string; first_name: string } | null> {
+  const client = await getDb();
+  const result = await client.execute({
+    sql: `SELECT user_id, first_name FROM members WHERE chat_id = ? AND username = ?`,
+    args: [chatId, username],
+  });
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const row = result.rows[0];
+  return {
+    user_id: row.user_id as string,
+    first_name: row.first_name as string,
+  };
+}
+
+export async function getCooldown(chatId: string): Promise<string | null> {
+  const client = await getDb();
+  const result = await client.execute({
+    sql: `SELECT last_stats_at FROM cooldowns WHERE chat_id = ?`,
+    args: [chatId],
+  });
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  return result.rows[0].last_stats_at as string;
+}
+
+export async function setCooldown(chatId: string, timestamp: string): Promise<void> {
+  const client = await getDb();
+  await client.execute({
+    sql: `
+      INSERT INTO cooldowns (chat_id, last_stats_at)
+      VALUES (?, ?)
+      ON CONFLICT(chat_id) DO UPDATE SET last_stats_at = excluded.last_stats_at
+    `,
+    args: [chatId, timestamp],
+  });
 }
 
 // --- Exports ---
 
-export { instance as db };
+export async function getDbInstance(): Promise<Client> {
+  return await getDb();
+}
 
-export function closeDb(): void {
-  instance.close();
-  log.info("Database closed");
+export async function closeDb(): Promise<void> {
+  if (db) {
+    await db.close();
+    log.info("Database closed");
+    db = null;
+    schemaInitialized = false;
+  }
 }

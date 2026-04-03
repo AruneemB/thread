@@ -1,7 +1,5 @@
-import cron, { ScheduledTask } from "node-cron";
 import { Bot, InputFile } from "grammy";
-import { db } from "../db/db.js";
-import type { Database } from "better-sqlite3";
+import { getDbInstance } from "../db/db.js";
 import {
   getGroupSummary,
   getDailyCountsForUser,
@@ -15,43 +13,13 @@ import { logger } from "../utils/logger.js";
 
 const log = logger.child({ module: "scheduler" });
 
-const CRON_EXPRESSION = "0 9 * * 1"; // Every Monday at 09:00 UTC
-
-let task: ScheduledTask | null = null;
-
-export function startScheduler(bot: Bot): void {
-  const enabled = (process.env.WEEKLY_DIGEST_ENABLED ?? "true").toLowerCase() !== "false";
-
-  if (!enabled) {
-    log.info("Weekly digest disabled via WEEKLY_DIGEST_ENABLED");
-    return;
-  }
-
-  log.info("Starting scheduler");
-
-  task = cron.schedule(
-    CRON_EXPRESSION,
-    async () => {
-      await runWeeklyDigest(bot);
-    },
-    { timezone: "UTC" }
-  );
-
-  log.info({ cron: CRON_EXPRESSION, timezone: "UTC" }, "Weekly digest job registered");
-}
-
-export function stopScheduler(): void {
-  if (task) {
-    log.info("Stopping scheduler");
-    task.stop();
-    task = null;
-  }
-}
-
-export function getActiveChatIds(database: Database = db): string[] {
-  const sql = `SELECT DISTINCT chat_id FROM messages WHERE date >= date('now', '-7 days')`;
-  const rows = database.prepare(sql).all() as { chat_id: string }[];
-  return rows.map((row) => row.chat_id);
+export async function getActiveChatIds(): Promise<string[]> {
+  const client = await getDbInstance();
+  const result = await client.execute({
+    sql: `SELECT DISTINCT chat_id FROM messages WHERE date >= date('now', '-7 days')`,
+    args: [],
+  });
+  return result.rows.map((row) => row.chat_id as string);
 }
 
 function formatWeeklyRange(): string {
@@ -66,9 +34,22 @@ function formatWeeklyRange(): string {
   return `${startStr} – ${endStr}`;
 }
 
-async function runWeeklyDigest(bot: Bot): Promise<void> {
+export async function runWeeklyDigest(): Promise<void> {
+  const enabled = (process.env.WEEKLY_DIGEST_ENABLED ?? "true").toLowerCase() !== "false";
+  if (!enabled) {
+    log.info("Weekly digest disabled via WEEKLY_DIGEST_ENABLED");
+    return;
+  }
+
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    throw new Error("TELEGRAM_BOT_TOKEN is not set");
+  }
+
+  const bot = new Bot(token);
+
   log.info("Running weekly digest job");
-  const chatIds = getActiveChatIds();
+  const chatIds = await getActiveChatIds();
   log.info({ count: chatIds.length }, "Found active chats");
 
   for (const chatId of chatIds) {
@@ -85,12 +66,12 @@ async function runWeeklyDigest(bot: Bot): Promise<void> {
       }
 
       // Get group summary and build dashboard
-      const summary = getGroupSummary(chatId);
+      const summary = await getGroupSummary(chatId);
       const members: MemberData[] = [];
       for (const tm of summary.topMembers) {
-        const dailyCounts = getDailyCountsForUser(chatId, tm.user_id, 52);
+        const dailyCounts = await getDailyCountsForUser(chatId, tm.user_id, 52);
         const streaks = computeStreaks(dailyCounts);
-        const total = getTotalMessages(chatId, tm.user_id);
+        const total = await getTotalMessages(chatId, tm.user_id);
         members.push(buildMemberData(tm, dailyCounts, streaks, total));
       }
 

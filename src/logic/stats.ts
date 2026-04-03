@@ -1,35 +1,37 @@
-import Database from "better-sqlite3";
-import { db } from "../db/db.js";
+import { getDbInstance } from "../db/db.js";
+import type { Client } from "@libsql/client";
 
 function getUtcTodayString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function getDailyCountsForUser(
+export async function getDailyCountsForUser(
   chatId: string,
   userId: string,
   weeks: number,
-  database?: Database.Database,
   referenceDate?: string,
-): Map<string, number> {
-  const target = database ?? db;
+): Promise<Map<string, number>> {
+  const client = await getDbInstance();
   const ref = referenceDate ? new Date(referenceDate + "T00:00:00Z") : new Date();
   const cutoff = new Date(ref);
   cutoff.setUTCDate(cutoff.getUTCDate() - weeks * 7);
   const cutoffStr = cutoff.toISOString().slice(0, 10);
 
-  const rows = target.prepare(`
-    SELECT date, COUNT(*) AS msg_count
-    FROM messages
-    WHERE chat_id = ? AND user_id = ? AND date >= ?
-    GROUP BY date
-  `).all(chatId, userId, cutoffStr) as { date: string; msg_count: number }[];
+  const result = await client.execute({
+    sql: `
+      SELECT date, COUNT(*) AS msg_count
+      FROM messages
+      WHERE chat_id = ? AND user_id = ? AND date >= ?
+      GROUP BY date
+    `,
+    args: [chatId, userId, cutoffStr],
+  });
 
-  const result = new Map<string, number>();
-  for (const row of rows) {
-    result.set(row.date, row.msg_count);
+  const counts = new Map<string, number>();
+  for (const row of result.rows) {
+    counts.set(row.date as string, row.msg_count as number);
   }
-  return result;
+  return counts;
 }
 
 function subtractOneDay(dateStr: string): string {
@@ -44,14 +46,13 @@ function addOneDay(dateStr: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function getHourlyMatrix(
+export async function getHourlyMatrix(
   chatId: string,
   userId: string,
   weeks: number = 52,
-  database?: Database.Database,
   referenceDate?: string,
-): number[][] {
-  const target = database ?? db;
+): Promise<number[][]> {
+  const client = await getDbInstance();
   const ref = referenceDate ? new Date(referenceDate + "T00:00:00Z") : new Date();
   const cutoff = new Date(ref);
   cutoff.setUTCDate(cutoff.getUTCDate() - weeks * 7);
@@ -59,31 +60,36 @@ export function getHourlyMatrix(
 
   const matrix: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
 
-  const rows = target.prepare(`
-    SELECT dow, hour, COUNT(*) AS msg_count
-    FROM messages
-    WHERE chat_id = ? AND user_id = ? AND date >= ?
-    GROUP BY dow, hour
-  `).all(chatId, userId, cutoffStr) as { dow: number; hour: number; msg_count: number }[];
+  const result = await client.execute({
+    sql: `
+      SELECT dow, hour, COUNT(*) AS msg_count
+      FROM messages
+      WHERE chat_id = ? AND user_id = ? AND date >= ?
+      GROUP BY dow, hour
+    `,
+    args: [chatId, userId, cutoffStr],
+  });
 
-  for (const row of rows) {
-    matrix[row.dow][row.hour] = row.msg_count;
+  for (const row of result.rows) {
+    matrix[row.dow as number][row.hour as number] = row.msg_count as number;
   }
   return matrix;
 }
 
-export function getTotalMessages(
+export async function getTotalMessages(
   chatId: string,
   userId: string,
-  database?: Database.Database,
-): number {
-  const target = database ?? db;
-  const row = target.prepare(`
-    SELECT COUNT(*) AS cnt
-    FROM messages
-    WHERE chat_id = ? AND user_id = ?
-  `).get(chatId, userId) as { cnt: number };
-  return row.cnt;
+): Promise<number> {
+  const client = await getDbInstance();
+  const result = await client.execute({
+    sql: `
+      SELECT COUNT(*) AS cnt
+      FROM messages
+      WHERE chat_id = ? AND user_id = ?
+    `,
+    args: [chatId, userId],
+  });
+  return result.rows[0].cnt as number;
 }
 
 export interface TopMember {
@@ -99,34 +105,45 @@ export interface GroupSummary {
   topMembers: TopMember[];
 }
 
-export function getGroupSummary(
+export async function getGroupSummary(
   chatId: string,
   topN: number = 20,
-  database?: Database.Database,
-): GroupSummary {
-  const target = database ?? db;
+): Promise<GroupSummary> {
+  const client = await getDbInstance();
 
-  const totalRow = target.prepare(`
-    SELECT COUNT(*) AS cnt FROM messages WHERE chat_id = ?
-  `).get(chatId) as { cnt: number };
+  const totalResult = await client.execute({
+    sql: `SELECT COUNT(*) AS cnt FROM messages WHERE chat_id = ?`,
+    args: [chatId],
+  });
 
-  const daysRow = target.prepare(`
-    SELECT COUNT(DISTINCT date) AS cnt FROM messages WHERE chat_id = ?
-  `).get(chatId) as { cnt: number };
+  const daysResult = await client.execute({
+    sql: `SELECT COUNT(DISTINCT date) AS cnt FROM messages WHERE chat_id = ?`,
+    args: [chatId],
+  });
 
-  const members = target.prepare(`
-    SELECT user_id, first_name, username, COUNT(*) AS totalCount
-    FROM messages
-    WHERE chat_id = ?
-    GROUP BY user_id
-    ORDER BY totalCount DESC
-    LIMIT ?
-  `).all(chatId, topN) as TopMember[];
+  const membersResult = await client.execute({
+    sql: `
+      SELECT user_id, first_name, username, COUNT(*) AS totalCount
+      FROM messages
+      WHERE chat_id = ?
+      GROUP BY user_id
+      ORDER BY totalCount DESC
+      LIMIT ?
+    `,
+    args: [chatId, topN],
+  });
+
+  const topMembers: TopMember[] = membersResult.rows.map(row => ({
+    user_id: row.user_id as string,
+    first_name: row.first_name as string,
+    username: row.username as string | null,
+    totalCount: row.totalCount as number,
+  }));
 
   return {
-    totalMessages: totalRow.cnt,
-    activeDays: daysRow.cnt,
-    topMembers: members,
+    totalMessages: totalResult.rows[0].cnt as number,
+    activeDays: daysResult.rows[0].cnt as number,
+    topMembers,
   };
 }
 

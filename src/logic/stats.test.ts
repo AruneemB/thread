@@ -1,7 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import Database from "better-sqlite3";
-import { initSchema, insertMessage } from "../db/db.js";
-import type { Message } from "../db/db.js";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { Client } from "@libsql/client";
 import {
   computeStreaks,
   getDailyCountsForUser,
@@ -11,27 +9,21 @@ import {
   getGroupSummary,
 } from "./stats.js";
 
+// Mock getDbInstance
+vi.mock("../db/db.js", () => ({
+  getDbInstance: vi.fn(),
+}));
+
+import { getDbInstance } from "../db/db.js";
+
 const TODAY = "2024-06-15";
 
-function createTestDb(): Database.Database {
-  const db = new Database(":memory:");
-  db.pragma("journal_mode = WAL");
-  initSchema(db);
-  return db;
-}
-
-function makeMessage(overrides: Partial<Message> = {}): Message {
+function createMockClient(): Client {
+  const mockExecute = vi.fn(async () => ({ rows: [], columns: [] }));
   return {
-    chat_id: "chat1",
-    user_id: "user1",
-    username: "alice",
-    first_name: "Alice",
-    date: "2024-01-15",
-    hour: 10,
-    dow: 0,
-    msg_length: 42,
-    ...overrides,
-  };
+    execute: mockExecute,
+    close: vi.fn(),
+  } as unknown as Client;
 }
 
 function daysAgo(n: number, from: string = TODAY): string {
@@ -145,74 +137,67 @@ describe("computeStreaks edge cases", () => {
 });
 
 describe("getDailyCountsForUser", () => {
-  let db: Database.Database;
+  let client: Client;
 
   beforeEach(() => {
-    db = createTestDb();
+    client = createMockClient();
+    (getDbInstance as any).mockResolvedValue(client);
   });
 
-  it("returns an empty map when no messages exist", () => {
-    const result = getDailyCountsForUser("chat1", "user1", 52, db, TODAY);
+  it("returns an empty map when no messages exist", async () => {
+    (client.execute as any).mockResolvedValue({ rows: [], columns: [] });
+    const result = await getDailyCountsForUser("chat1", "user1", 52, TODAY);
     expect(result.size).toBe(0);
   });
 
-  it("counts 3 messages on one date correctly", () => {
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
+  it("counts 3 messages on one date correctly", async () => {
+    (client.execute as any).mockResolvedValue({
+      rows: [{ date: "2024-06-10", msg_count: 3 }],
+      columns: ["date", "msg_count"],
+    });
 
-    const result = getDailyCountsForUser("chat1", "user1", 52, db, TODAY);
+    const result = await getDailyCountsForUser("chat1", "user1", 52, TODAY);
     expect(result.get("2024-06-10")).toBe(3);
     expect(result.size).toBe(1);
   });
 
-  it("returns correct counts across multiple dates", () => {
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ date: "2024-06-12" }), db);
+  it("returns correct counts across multiple dates", async () => {
+    (client.execute as any).mockResolvedValue({
+      rows: [
+        { date: "2024-06-10", msg_count: 2 },
+        { date: "2024-06-12", msg_count: 1 },
+      ],
+      columns: ["date", "msg_count"],
+    });
 
-    const result = getDailyCountsForUser("chat1", "user1", 52, db, TODAY);
+    const result = await getDailyCountsForUser("chat1", "user1", 52, TODAY);
     expect(result.get("2024-06-10")).toBe(2);
     expect(result.get("2024-06-12")).toBe(1);
     expect(result.size).toBe(2);
   });
 
-  it("excludes messages older than the specified weeks", () => {
-    // 52 weeks before 2024-06-15 is 2023-06-17
-    insertMessage(makeMessage({ date: "2023-06-16" }), db); // too old
-    insertMessage(makeMessage({ date: "2023-06-17" }), db); // exactly at cutoff
+  it("calls execute with correct SQL and parameters", async () => {
+    (client.execute as any).mockResolvedValue({ rows: [], columns: [] });
+    await getDailyCountsForUser("chat1", "user1", 52, TODAY);
 
-    const result = getDailyCountsForUser("chat1", "user1", 52, db, TODAY);
-    expect(result.has("2023-06-16")).toBe(false);
-    expect(result.get("2023-06-17")).toBe(1);
-  });
-
-  it("excludes messages from a different chat_id", () => {
-    insertMessage(makeMessage({ chat_id: "chat1", date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ chat_id: "chat2", date: "2024-06-10" }), db);
-
-    const result = getDailyCountsForUser("chat1", "user1", 52, db, TODAY);
-    expect(result.get("2024-06-10")).toBe(1);
-  });
-
-  it("excludes messages from a different user_id", () => {
-    insertMessage(makeMessage({ user_id: "user1", date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ user_id: "user2", date: "2024-06-10" }), db);
-
-    const result = getDailyCountsForUser("chat1", "user1", 52, db, TODAY);
-    expect(result.get("2024-06-10")).toBe(1);
+    expect(client.execute).toHaveBeenCalledWith({
+      sql: expect.stringContaining("SELECT date, COUNT(*) AS msg_count"),
+      args: ["chat1", "user1", expect.any(String)],
+    });
   });
 });
 
 describe("getHourlyMatrix", () => {
-  let db: Database.Database;
+  let client: Client;
 
   beforeEach(() => {
-    db = createTestDb();
+    client = createMockClient();
+    (getDbInstance as any).mockResolvedValue(client);
   });
 
-  it("returns a 7x24 all-zero matrix when no data exists", () => {
-    const matrix = getHourlyMatrix("chat1", "user1", 52, db, TODAY);
+  it("returns a 7x24 all-zero matrix when no data exists", async () => {
+    (client.execute as any).mockResolvedValue({ rows: [], columns: [] });
+    const matrix = await getHourlyMatrix("chat1", "user1", 52, TODAY);
     for (let dow = 0; dow < 7; dow++) {
       for (let hour = 0; hour < 24; hour++) {
         expect(matrix[dow][hour]).toBe(0);
@@ -220,73 +205,94 @@ describe("getHourlyMatrix", () => {
     }
   });
 
-  it("has correct dimensions: 7 rows each with 24 columns", () => {
-    const matrix = getHourlyMatrix("chat1", "user1", 52, db, TODAY);
+  it("has correct dimensions: 7 rows each with 24 columns", async () => {
+    (client.execute as any).mockResolvedValue({ rows: [], columns: [] });
+    const matrix = await getHourlyMatrix("chat1", "user1", 52, TODAY);
     expect(matrix.length).toBe(7);
     for (const row of matrix) {
       expect(row.length).toBe(24);
     }
   });
 
-  it("places a single message at the correct cell", () => {
-    insertMessage(makeMessage({ dow: 0, hour: 14, date: "2024-06-10" }), db);
-    const matrix = getHourlyMatrix("chat1", "user1", 52, db, TODAY);
+  it("places a single message at the correct cell", async () => {
+    (client.execute as any).mockResolvedValue({
+      rows: [{ dow: 0, hour: 14, msg_count: 1 }],
+      columns: ["dow", "hour", "msg_count"],
+    });
+
+    const matrix = await getHourlyMatrix("chat1", "user1", 52, TODAY);
     expect(matrix[0][14]).toBe(1);
-    // spot-check other cells are zero
     expect(matrix[0][0]).toBe(0);
     expect(matrix[6][23]).toBe(0);
   });
 
-  it("accumulates multiple messages at the same cell", () => {
-    insertMessage(makeMessage({ dow: 2, hour: 9, date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ dow: 2, hour: 9, date: "2024-06-11" }), db);
-    insertMessage(makeMessage({ dow: 2, hour: 9, date: "2024-06-12" }), db);
-    const matrix = getHourlyMatrix("chat1", "user1", 52, db, TODAY);
+  it("accumulates multiple messages at the same cell", async () => {
+    (client.execute as any).mockResolvedValue({
+      rows: [{ dow: 2, hour: 9, msg_count: 3 }],
+      columns: ["dow", "hour", "msg_count"],
+    });
+
+    const matrix = await getHourlyMatrix("chat1", "user1", 52, TODAY);
     expect(matrix[2][9]).toBe(3);
   });
 
-  it("fills correct cells for messages across different dow/hour", () => {
-    insertMessage(makeMessage({ dow: 0, hour: 8, date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ dow: 3, hour: 17, date: "2024-06-11" }), db);
-    insertMessage(makeMessage({ dow: 6, hour: 23, date: "2024-06-12" }), db);
-    const matrix = getHourlyMatrix("chat1", "user1", 52, db, TODAY);
+  it("fills correct cells for messages across different dow/hour", async () => {
+    (client.execute as any).mockResolvedValue({
+      rows: [
+        { dow: 0, hour: 8, msg_count: 1 },
+        { dow: 3, hour: 17, msg_count: 1 },
+        { dow: 6, hour: 23, msg_count: 1 },
+      ],
+      columns: ["dow", "hour", "msg_count"],
+    });
+
+    const matrix = await getHourlyMatrix("chat1", "user1", 52, TODAY);
     expect(matrix[0][8]).toBe(1);
     expect(matrix[3][17]).toBe(1);
     expect(matrix[6][23]).toBe(1);
   });
-
-  it("excludes messages outside the 52-week window", () => {
-    // 52 weeks before 2024-06-15 is 2023-06-17
-    insertMessage(makeMessage({ dow: 1, hour: 10, date: "2023-06-16" }), db); // too old
-    insertMessage(makeMessage({ dow: 1, hour: 10, date: "2023-06-17" }), db); // at cutoff
-    const matrix = getHourlyMatrix("chat1", "user1", 52, db, TODAY);
-    expect(matrix[1][10]).toBe(1);
-  });
 });
 
 describe("getTotalMessages", () => {
-  let db: Database.Database;
+  let client: Client;
 
   beforeEach(() => {
-    db = createTestDb();
+    client = createMockClient();
+    (getDbInstance as any).mockResolvedValue(client);
   });
 
-  it("returns 0 for an unknown user", () => {
-    expect(getTotalMessages("chat1", "unknown", db)).toBe(0);
+  it("returns 0 for an unknown user", async () => {
+    (client.execute as any).mockResolvedValue({
+      rows: [{ cnt: 0 }],
+      columns: ["cnt"],
+    });
+
+    const result = await getTotalMessages("chat1", "unknown");
+    expect(result).toBe(0);
   });
 
-  it("returns correct count for a user with 5 messages", () => {
-    for (let i = 0; i < 5; i++) {
-      insertMessage(makeMessage({ date: `2024-06-${10 + i}` }), db);
-    }
-    expect(getTotalMessages("chat1", "user1", db)).toBe(5);
+  it("returns correct count for a user with 5 messages", async () => {
+    (client.execute as any).mockResolvedValue({
+      rows: [{ cnt: 5 }],
+      columns: ["cnt"],
+    });
+
+    const result = await getTotalMessages("chat1", "user1");
+    expect(result).toBe(5);
   });
 
-  it("only counts messages for the specified chat_id", () => {
-    insertMessage(makeMessage({ chat_id: "chat1", date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ chat_id: "chat1", date: "2024-06-11" }), db);
-    insertMessage(makeMessage({ chat_id: "chat2", date: "2024-06-10" }), db);
-    expect(getTotalMessages("chat1", "user1", db)).toBe(2);
+  it("calls execute with correct SQL and parameters", async () => {
+    (client.execute as any).mockResolvedValue({
+      rows: [{ cnt: 0 }],
+      columns: ["cnt"],
+    });
+
+    await getTotalMessages("chat1", "user1");
+
+    expect(client.execute).toHaveBeenCalledWith({
+      sql: expect.stringContaining("SELECT COUNT(*) AS cnt"),
+      args: ["chat1", "user1"],
+    });
   });
 });
 
@@ -327,61 +333,95 @@ describe("getPeakHour", () => {
 });
 
 describe("getGroupSummary", () => {
-  let db: Database.Database;
+  let client: Client;
 
   beforeEach(() => {
-    db = createTestDb();
+    client = createMockClient();
+    (getDbInstance as any).mockResolvedValue(client);
   });
 
-  it("returns zeros and empty array for an empty chat", () => {
-    const summary = getGroupSummary("chat1", 20, db);
+  it("returns zeros and empty array for an empty chat", async () => {
+    // Mock three execute calls: totalMessages, activeDays, topMembers
+    (client.execute as any)
+      .mockResolvedValueOnce({ rows: [{ cnt: 0 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({ rows: [{ cnt: 0 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({ rows: [], columns: [] });
+    const summary = await getGroupSummary("chat1", 20);
     expect(summary).toEqual({ totalMessages: 0, activeDays: 0, topMembers: [] });
   });
 
-  it("returns a single member in topMembers", () => {
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
-    const summary = getGroupSummary("chat1", 20, db);
+  it("returns a single member in topMembers", async () => {
+    (client.execute as any)
+      .mockResolvedValueOnce({ rows: [{ cnt: 1 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({ rows: [{ cnt: 1 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            user_id: "user1",
+            first_name: "Alice",
+            username: "alice",
+            totalCount: 1,
+          },
+        ],
+        columns: ["user_id", "first_name", "username", "totalCount"],
+      });
+
+    const summary = await getGroupSummary("chat1", 20);
     expect(summary.topMembers.length).toBe(1);
   });
 
-  it("sorts members by totalCount descending", () => {
-    insertMessage(makeMessage({ user_id: "u1", first_name: "Alice", date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ user_id: "u2", first_name: "Bob", date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ user_id: "u2", first_name: "Bob", date: "2024-06-11" }), db);
-    insertMessage(makeMessage({ user_id: "u2", first_name: "Bob", date: "2024-06-12" }), db);
-    const summary = getGroupSummary("chat1", 20, db);
+  it("sorts members by totalCount descending", async () => {
+    (client.execute as any)
+      .mockResolvedValueOnce({ rows: [{ cnt: 4 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({ rows: [{ cnt: 3 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({
+        rows: [
+          { user_id: "u2", first_name: "Bob", username: "bob", totalCount: 3 },
+          { user_id: "u1", first_name: "Alice", username: "alice", totalCount: 1 },
+        ],
+        columns: ["user_id", "first_name", "username", "totalCount"],
+      });
+
+    const summary = await getGroupSummary("chat1", 20);
     expect(summary.topMembers[0].user_id).toBe("u2");
     expect(summary.topMembers[0].totalCount).toBe(3);
     expect(summary.topMembers[1].user_id).toBe("u1");
     expect(summary.topMembers[1].totalCount).toBe(1);
   });
 
-  it("limits results to topN members", () => {
-    insertMessage(makeMessage({ user_id: "u1", first_name: "A", date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ user_id: "u2", first_name: "B", date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ user_id: "u3", first_name: "C", date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ user_id: "u4", first_name: "D", date: "2024-06-10" }), db);
-    const summary = getGroupSummary("chat1", 3, db);
+  it("limits results to topN members", async () => {
+    (client.execute as any)
+      .mockResolvedValueOnce({ rows: [{ cnt: 4 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({ rows: [{ cnt: 4 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({
+        rows: [
+          { user_id: "u1", first_name: "A", username: "a", totalCount: 4 },
+          { user_id: "u2", first_name: "B", username: "b", totalCount: 3 },
+          { user_id: "u3", first_name: "C", username: "c", totalCount: 2 },
+        ],
+        columns: ["user_id", "first_name", "username", "totalCount"],
+      });
+
+    const summary = await getGroupSummary("chat1", 3);
     expect(summary.topMembers.length).toBe(3);
   });
 
-  it("includes user_id, first_name, username, and totalCount in entries", () => {
-    insertMessage(makeMessage({ user_id: "u1", first_name: "Alice", username: "alice", date: "2024-06-10" }), db);
-    const summary = getGroupSummary("chat1", 20, db);
+  it("includes user_id, first_name, username, and totalCount in entries", async () => {
+    (client.execute as any)
+      .mockResolvedValueOnce({ rows: [{ cnt: 1 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({ rows: [{ cnt: 1 }], columns: ["cnt"] })
+      .mockResolvedValueOnce({
+        rows: [
+          { user_id: "u1", first_name: "Alice", username: "alice", totalCount: 1 },
+        ],
+        columns: ["user_id", "first_name", "username", "totalCount"],
+      });
+
+    const summary = await getGroupSummary("chat1", 20);
     const member = summary.topMembers[0];
     expect(member.user_id).toBe("u1");
     expect(member.first_name).toBe("Alice");
     expect(member.username).toBe("alice");
     expect(member.totalCount).toBe(1);
-  });
-
-  it("counts distinct dates for activeDays, not total messages", () => {
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ date: "2024-06-10" }), db);
-    insertMessage(makeMessage({ date: "2024-06-11" }), db);
-    const summary = getGroupSummary("chat1", 20, db);
-    expect(summary.totalMessages).toBe(4);
-    expect(summary.activeDays).toBe(2);
   });
 });

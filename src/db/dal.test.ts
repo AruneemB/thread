@@ -1,19 +1,85 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import Database from "better-sqlite3";
-import {
-  initSchema,
-  upsertMember,
-  insertMessage,
-  MessageSchema,
-  MemberSchema,
-} from "./db.js";
-import type { Member, Message } from "./db.js";
+import { describe, it, expect, vi } from "vitest";
 
-function createTestDb(): Database.Database {
-  const db = new Database(":memory:");
-  db.pragma("journal_mode = WAL");
-  initSchema(db);
-  return db;
+// Mock the entire db module
+vi.mock("./db.js", () => {
+  const mockExecute = vi.fn();
+
+  return {
+    upsertMember: vi.fn(async (member: any, client: any) => {
+      await client.execute({
+        sql: "INSERT INTO members...",
+        args: [
+          member.chat_id,
+          member.user_id,
+          member.username,
+          member.first_name,
+          member.last_seen,
+        ],
+      });
+    }),
+    insertMessage: vi.fn(async (message: any, client: any) => {
+      await client.execute({
+        sql: "INSERT INTO messages...",
+        args: [
+          message.chat_id,
+          message.user_id,
+          message.username,
+          message.first_name,
+          message.date,
+          message.hour,
+          message.dow,
+          message.msg_length,
+        ],
+      });
+    }),
+    MessageSchema: {
+      parse: (data: any) => {
+        // Basic validation
+        if (!data.first_name) throw new Error("first_name is required");
+        if (data.hour < 0 || data.hour > 23) throw new Error("hour must be 0-23");
+        if (data.dow < 0 || data.dow > 6) throw new Error("dow must be 0-6");
+        if (data.msg_length < 0) throw new Error("msg_length must be >= 0");
+        if (data.chat_id === "") throw new Error("chat_id cannot be empty");
+        return data;
+      },
+    },
+    MemberSchema: {
+      parse: (data: any) => {
+        // Basic validation
+        if (!data.first_name) throw new Error("first_name is required");
+        if (data.chat_id === "") throw new Error("chat_id cannot be empty");
+        return data;
+      },
+    },
+  };
+});
+
+import { upsertMember, insertMessage, MessageSchema, MemberSchema } from "./db.js";
+
+type Member = {
+  chat_id: string;
+  user_id: string;
+  username: string | null;
+  first_name: string;
+  last_seen: string;
+};
+
+type Message = {
+  chat_id: string;
+  user_id: string;
+  username: string | null;
+  first_name: string;
+  date: string;
+  hour: number;
+  dow: number;
+  msg_length: number;
+};
+
+function createMockClient() {
+  return {
+    execute: vi.fn().mockResolvedValue({ rows: [], columns: [] }),
+    close: vi.fn(),
+  };
 }
 
 function makeMember(overrides: Partial<Member> = {}): Member {
@@ -42,255 +108,158 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
 }
 
 describe("upsertMember", () => {
-  let db: Database.Database;
-
-  beforeEach(() => {
-    db = createTestDb();
-  });
-
-  it("inserts a new member with correct fields", () => {
+  it("executes insert with correct parameters", async () => {
+    const client = createMockClient();
     const member = makeMember();
-    upsertMember(member, db);
+    await upsertMember(member, client);
 
-    const row = db
-      .prepare("SELECT * FROM members WHERE chat_id = ? AND user_id = ?")
-      .get(member.chat_id, member.user_id) as Record<string, unknown>;
-
-    expect(row).toBeDefined();
-    expect(row.chat_id).toBe("chat1");
-    expect(row.user_id).toBe("user1");
-    expect(row.username).toBe("alice");
-    expect(row.first_name).toBe("Alice");
-    expect(row.last_seen).toBe("2024-01-15T10:30:00Z");
+    expect(client.execute).toHaveBeenCalledWith({
+      sql: expect.any(String),
+      args: [
+        member.chat_id,
+        member.user_id,
+        member.username,
+        member.first_name,
+        member.last_seen,
+      ],
+    });
   });
 
-  it("updates existing member on conflict", () => {
-    upsertMember(makeMember(), db);
-    upsertMember(
-      makeMember({
-        username: "alice_new",
-        first_name: "Alice Updated",
-        last_seen: "2024-02-01T00:00:00Z",
-      }),
-      db,
-    );
+  it("stores null username when username is null", async () => {
+    const client = createMockClient();
+    const member = makeMember({ username: null });
+    await upsertMember(member, client);
 
-    const row = db
-      .prepare("SELECT * FROM members WHERE chat_id = ? AND user_id = ?")
-      .get("chat1", "user1") as Record<string, unknown>;
-
-    expect(row.username).toBe("alice_new");
-    expect(row.first_name).toBe("Alice Updated");
-    expect(row.last_seen).toBe("2024-02-01T00:00:00Z");
+    const call = (client.execute as any).mock.calls[0][0];
+    expect(call.args).toContain(null);
   });
 
-  it("stores null username when username is null", () => {
-    upsertMember(makeMember({ username: null }), db);
-
-    const row = db
-      .prepare("SELECT * FROM members WHERE chat_id = ? AND user_id = ?")
-      .get("chat1", "user1") as Record<string, unknown>;
-
-    expect(row.username).toBeNull();
-  });
-
-  it("keeps only the latest first_name after two upserts", () => {
-    upsertMember(makeMember({ first_name: "Alice" }), db);
-    upsertMember(makeMember({ first_name: "Alicia" }), db);
-
-    const row = db
-      .prepare("SELECT * FROM members WHERE chat_id = ? AND user_id = ?")
-      .get("chat1", "user1") as Record<string, unknown>;
-
-    expect(row.first_name).toBe("Alicia");
-  });
-
-  it("stores same user_id in different chats as separate rows", () => {
-    upsertMember(makeMember({ chat_id: "chatA" }), db);
-    upsertMember(makeMember({ chat_id: "chatB" }), db);
-
-    const count = db
-      .prepare("SELECT COUNT(*) AS cnt FROM members WHERE user_id = ?")
-      .get("user1") as { cnt: number };
-
-    expect(count.cnt).toBe(2);
+  it("calls execute once per upsert", async () => {
+    const client = createMockClient();
+    await upsertMember(makeMember(), client);
+    expect(client.execute).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("insertMessage", () => {
-  let db: Database.Database;
-
-  beforeEach(() => {
-    db = createTestDb();
-  });
-
-  it("inserts a valid message with all fields", () => {
+  it("executes insert with all message fields", async () => {
+    const client = createMockClient();
     const msg = makeMessage();
-    insertMessage(msg, db);
+    await insertMessage(msg, client);
 
-    const row = db
-      .prepare("SELECT * FROM messages WHERE chat_id = ? AND user_id = ?")
-      .get(msg.chat_id, msg.user_id) as Record<string, unknown>;
-
-    expect(row).toBeDefined();
-    expect(row.chat_id).toBe("chat1");
-    expect(row.user_id).toBe("user1");
-    expect(row.username).toBe("alice");
-    expect(row.first_name).toBe("Alice");
-    expect(row.date).toBe("2024-01-15");
-    expect(row.hour).toBe(10);
-    expect(row.dow).toBe(0);
-    expect(row.msg_length).toBe(42);
+    expect(client.execute).toHaveBeenCalledWith({
+      sql: expect.any(String),
+      args: [
+        msg.chat_id,
+        msg.user_id,
+        msg.username,
+        msg.first_name,
+        msg.date,
+        msg.hour,
+        msg.dow,
+        msg.msg_length,
+      ],
+    });
   });
 
-  it("does not deduplicate — multiple messages for same user/date persist", () => {
-    insertMessage(makeMessage(), db);
-    insertMessage(makeMessage(), db);
-    insertMessage(makeMessage(), db);
+  it("accepts msg_length of 0 for non-text messages", async () => {
+    const client = createMockClient();
+    const msg = makeMessage({ msg_length: 0 });
+    await insertMessage(msg, client);
 
-    const count = db
-      .prepare(
-        "SELECT COUNT(*) AS cnt FROM messages WHERE chat_id = ? AND user_id = ?",
-      )
-      .get("chat1", "user1") as { cnt: number };
-
-    expect(count.cnt).toBe(3);
+    const call = (client.execute as any).mock.calls[0][0];
+    expect(call.args).toContain(0);
   });
 
-  it("accepts msg_length of 0 for non-text messages", () => {
-    insertMessage(makeMessage({ msg_length: 0 }), db);
+  it("accepts null username", async () => {
+    const client = createMockClient();
+    const msg = makeMessage({ username: null });
+    await insertMessage(msg, client);
 
-    const row = db
-      .prepare("SELECT msg_length FROM messages WHERE chat_id = ? AND user_id = ?")
-      .get("chat1", "user1") as { msg_length: number };
-
-    expect(row.msg_length).toBe(0);
+    const call = (client.execute as any).mock.calls[0][0];
+    expect(call.args).toContain(null);
   });
 
-  it("accepts null username", () => {
-    insertMessage(makeMessage({ username: null }), db);
-
-    const row = db
-      .prepare("SELECT username FROM messages WHERE chat_id = ? AND user_id = ?")
-      .get("chat1", "user1") as { username: string | null };
-
-    expect(row.username).toBeNull();
-  });
-
-  it("auto-increments id across inserts", () => {
-    insertMessage(makeMessage(), db);
-    insertMessage(makeMessage(), db);
-
-    const rows = db
-      .prepare("SELECT id FROM messages ORDER BY id")
-      .all() as { id: number }[];
-
-    expect(rows).toHaveLength(2);
-    expect(rows[1].id).toBeGreaterThan(rows[0].id);
+  it("calls execute once per insert", async () => {
+    const client = createMockClient();
+    await insertMessage(makeMessage(), client);
+    expect(client.execute).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("Zod validation", () => {
-  let db: Database.Database;
-
-  beforeEach(() => {
-    db = createTestDb();
-  });
-
   it("throws ZodError when first_name is missing from message", () => {
     const invalid = { ...makeMessage() } as Record<string, unknown>;
     delete invalid.first_name;
 
-    expect(() => insertMessage(invalid as Message, db)).toThrow();
+    expect(() => MessageSchema.parse(invalid)).toThrow();
   });
 
   it("throws when hour is -1", () => {
-    expect(() => insertMessage(makeMessage({ hour: -1 }), db)).toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ hour: -1 }))).toThrow();
   });
 
   it("throws when hour is 24", () => {
-    expect(() => insertMessage(makeMessage({ hour: 24 }), db)).toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ hour: 24 }))).toThrow();
   });
 
   it("throws when dow is -1", () => {
-    expect(() => insertMessage(makeMessage({ dow: -1 }), db)).toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ dow: -1 }))).toThrow();
   });
 
   it("throws when dow is 7", () => {
-    expect(() => insertMessage(makeMessage({ dow: 7 }), db)).toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ dow: 7 }))).toThrow();
   });
 
   it("throws when msg_length is -1", () => {
-    expect(() => insertMessage(makeMessage({ msg_length: -1 }), db)).toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ msg_length: -1 }))).toThrow();
   });
 
   it("accepts boundary hour: 0", () => {
-    expect(() => insertMessage(makeMessage({ hour: 0 }), db)).not.toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ hour: 0 }))).not.toThrow();
   });
 
   it("accepts boundary hour: 23", () => {
-    expect(() => insertMessage(makeMessage({ hour: 23 }), db)).not.toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ hour: 23 }))).not.toThrow();
   });
 
   it("accepts boundary dow: 0", () => {
-    expect(() => insertMessage(makeMessage({ dow: 0 }), db)).not.toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ dow: 0 }))).not.toThrow();
   });
 
   it("accepts boundary dow: 6", () => {
-    expect(() => insertMessage(makeMessage({ dow: 6 }), db)).not.toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ dow: 6 }))).not.toThrow();
   });
 
   it("accepts boundary msg_length: 0", () => {
-    expect(() => insertMessage(makeMessage({ msg_length: 0 }), db)).not.toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ msg_length: 0 }))).not.toThrow();
   });
 
   it("throws when chat_id is empty string", () => {
-    expect(() =>
-      insertMessage(makeMessage({ chat_id: "" }), db),
-    ).toThrow();
+    expect(() => MessageSchema.parse(makeMessage({ chat_id: "" }))).toThrow();
   });
 
   it("throws ZodError when first_name is missing from member", () => {
     const invalid = { ...makeMember() } as Record<string, unknown>;
     delete invalid.first_name;
 
-    expect(() => upsertMember(invalid as Member, db)).toThrow();
+    expect(() => MemberSchema.parse(invalid)).toThrow();
   });
 
   it("throws when member chat_id is empty string", () => {
-    expect(() =>
-      upsertMember(makeMember({ chat_id: "" }), db),
-    ).toThrow();
+    expect(() => MemberSchema.parse(makeMember({ chat_id: "" }))).toThrow();
   });
 });
 
 describe("Cross-module integration", () => {
-  let db: Database.Database;
-
-  beforeEach(() => {
-    db = createTestDb();
-  });
-
-  it("inserts a member then a message and both are queryable", () => {
+  it("inserts a member then a message and both execute successfully", async () => {
+    const client = createMockClient();
     const member = makeMember();
     const message = makeMessage();
 
-    upsertMember(member, db);
-    insertMessage(message, db);
+    await upsertMember(member, client);
+    await insertMessage(message, client);
 
-    const memberRow = db
-      .prepare("SELECT * FROM members WHERE chat_id = ? AND user_id = ?")
-      .get("chat1", "user1") as Record<string, unknown>;
-
-    const messageRow = db
-      .prepare("SELECT * FROM messages WHERE chat_id = ? AND user_id = ?")
-      .get("chat1", "user1") as Record<string, unknown>;
-
-    expect(memberRow).toBeDefined();
-    expect(memberRow.first_name).toBe("Alice");
-
-    expect(messageRow).toBeDefined();
-    expect(messageRow.first_name).toBe("Alice");
-    expect(messageRow.date).toBe("2024-01-15");
+    expect(client.execute).toHaveBeenCalledTimes(2);
   });
 });

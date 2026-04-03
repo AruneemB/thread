@@ -60,8 +60,8 @@ function getHandler() {
 }
 
 function setupDefaultMocks() {
-  mockGetTotalMessages.mockReturnValue(100);
-  mockGetDailyCounts.mockReturnValue(new Map<string, number>());
+  mockGetTotalMessages.mockResolvedValue(100);
+  mockGetDailyCounts.mockResolvedValue(new Map<string, number>());
   mockComputeStreaks.mockReturnValue({ current: 3, longest: 10 });
   mockBuildMemberData.mockReturnValue({
     displayName: "Test User",
@@ -116,7 +116,7 @@ describe("/mystats command", () => {
 
   it("replies with no-data message when user has no stats", async () => {
     setupDefaultMocks();
-    mockGetTotalMessages.mockReturnValue(0);
+    mockGetTotalMessages.mockResolvedValue(0);
     const ctx = makeCtx();
     await getHandler()(ctx);
     expect(ctx.reply).toHaveBeenCalledWith("I don't have any stats for you in this chat yet.");

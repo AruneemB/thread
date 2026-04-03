@@ -13,6 +13,8 @@ vi.mock("../renderer/renderer.js", () => ({
 
 vi.mock("../db/db.js", () => ({
   getMemberByUsername: vi.fn(),
+  getCooldown: vi.fn(),
+  setCooldown: vi.fn(),
 }));
 
 vi.mock("grammy", () => {
@@ -33,8 +35,8 @@ vi.mock("grammy", () => {
 
 import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
 import { renderer } from "../renderer/renderer.js";
-import { getMemberByUsername } from "../db/db.js";
-import { statsComposer, cooldowns, getCooldownMs, buildCells, buildMemberData, avatarColorFromId, initialsFrom } from "./stats.js";
+import { getMemberByUsername, getCooldown, setCooldown } from "../db/db.js";
+import { statsComposer, getCooldownMs, buildCells, buildMemberData, avatarColorFromId, initialsFrom } from "./stats.js";
 
 const mockGetGroupSummary = getGroupSummary as ReturnType<typeof vi.fn>;
 const mockGetDailyCounts = getDailyCountsForUser as ReturnType<typeof vi.fn>;
@@ -42,6 +44,8 @@ const mockComputeStreaks = computeStreaks as ReturnType<typeof vi.fn>;
 const mockGetTotalMessages = getTotalMessages as ReturnType<typeof vi.fn>;
 const mockRender = renderer.render as ReturnType<typeof vi.fn>;
 const mockGetMemberByUsername = getMemberByUsername as ReturnType<typeof vi.fn>;
+const mockGetCooldown = getCooldown as ReturnType<typeof vi.fn>;
+const mockSetCooldown = setCooldown as ReturnType<typeof vi.fn>;
 
 function makeCtx(overrides: Record<string, unknown> = {}) {
   return {
@@ -64,29 +68,30 @@ function setupDefaultMocks(memberCount = 2) {
     username: `user${i}`,
     totalCount: (memberCount - i) * 100,
   }));
-  mockGetGroupSummary.mockReturnValue({
+  mockGetGroupSummary.mockResolvedValue({
     totalMessages: members.reduce((s, m) => s + m.totalCount, 0),
     activeDays: 30,
     topMembers: members,
   });
-  mockGetDailyCounts.mockReturnValue(new Map<string, number>());
+  mockGetDailyCounts.mockResolvedValue(new Map<string, number>());
   mockComputeStreaks.mockReturnValue({ current: 3, longest: 10 });
-  mockGetTotalMessages.mockImplementation((_chatId: string, userId: string) => {
+  mockGetTotalMessages.mockImplementation(async (_chatId: string, userId: string) => {
     const m = members.find(x => x.user_id === userId);
     return m ? m.totalCount : 0;
   });
   mockRender.mockResolvedValue(Buffer.from("fake-png"));
+  mockGetCooldown.mockResolvedValue(null);
+  mockSetCooldown.mockResolvedValue(undefined);
 }
 
 describe("/stats command", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    cooldowns.clear();
     delete process.env.STATS_COOLDOWN_SECONDS;
   });
 
   afterEach(() => {
-    cooldowns.clear();
+    vi.clearAllMocks();
   });
 
   describe("Data assembly", () => {
@@ -146,8 +151,13 @@ describe("/stats command", () => {
 
     it("second call within cooldown is rejected", async () => {
       setupDefaultMocks();
+      mockGetCooldown.mockResolvedValueOnce(null);
       const ctx1 = makeCtx();
       await getHandler()(ctx1);
+
+      // Mock cooldown active for second call
+      const futureTime = new Date(Date.now() + 300000).toISOString();
+      mockGetCooldown.mockResolvedValueOnce(futureTime);
       const ctx2 = makeCtx();
       await getHandler()(ctx2);
       expect(ctx2.reply).toHaveBeenCalledWith(expect.stringContaining("cooldown"));
@@ -156,8 +166,12 @@ describe("/stats command", () => {
 
     it("rejection message includes remaining time", async () => {
       setupDefaultMocks();
+      mockGetCooldown.mockResolvedValueOnce(null);
       const ctx1 = makeCtx();
       await getHandler()(ctx1);
+
+      const futureTime = new Date(Date.now() + 300000).toISOString();
+      mockGetCooldown.mockResolvedValueOnce(futureTime);
       const ctx2 = makeCtx();
       await getHandler()(ctx2);
       const msg = ctx2.reply.mock.calls[0][0] as string;
@@ -166,10 +180,13 @@ describe("/stats command", () => {
 
     it("succeeds after cooldown elapses", async () => {
       setupDefaultMocks();
+      mockGetCooldown.mockResolvedValueOnce(null);
       const ctx1 = makeCtx();
       await getHandler()(ctx1);
-      // Simulate cooldown expiration by setting a past timestamp
-      cooldowns.set("-100123", Date.now() - 601_000);
+
+      // Mock expired cooldown
+      const pastTime = new Date(Date.now() - 601000).toISOString();
+      mockGetCooldown.mockResolvedValueOnce(pastTime);
       const ctx2 = makeCtx();
       await getHandler()(ctx2);
       expect(ctx2.replyWithPhoto).toHaveBeenCalled();
@@ -177,6 +194,7 @@ describe("/stats command", () => {
 
     it("per-chat isolation: chat A cooldown does not affect chat B", async () => {
       setupDefaultMocks();
+      mockGetCooldown.mockResolvedValue(null);
       const ctxA = makeCtx({ chat: { id: -100, title: "A" } });
       await getHandler()(ctxA);
       const ctxB = makeCtx({ chat: { id: -200, title: "B" } });
@@ -249,7 +267,7 @@ describe("/stats command", () => {
       mockRender.mockRejectedValueOnce(new Error("Timeout exceeded"));
       const ctx = makeCtx();
       await getHandler()(ctx);
-      expect(cooldowns.has("-100123")).toBe(false);
+      expect(mockSetCooldown).not.toHaveBeenCalled();
     });
   });
 });
@@ -265,7 +283,6 @@ describe("Helper functions", () => {
   it("avatarColorFromId returns different colors for different ids", () => {
     const c1 = avatarColorFromId("100");
     const c2 = avatarColorFromId("999");
-    // Not guaranteed to be different for all inputs, but these particular values should differ
     expect(typeof c1).toBe("string");
     expect(typeof c2).toBe("string");
   });
@@ -291,10 +308,7 @@ describe("Helper functions", () => {
   it("buildCells marks future dates as -1", () => {
     const cells = buildCells(new Map());
     const futureCount = cells.filter(c => c === -1).length;
-    // Depending on what day it is, there should be some future cells
-    // At minimum, cells after today should be -1
     expect(futureCount).toBeGreaterThanOrEqual(0);
-    // All non-future cells should be 0 for empty map
     const pastCells = cells.filter(c => c >= 0);
     expect(pastCells.every(c => c === 0)).toBe(true);
   });
@@ -326,17 +340,16 @@ describe("Helper functions", () => {
 describe("/stats @username", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    cooldowns.clear();
     delete process.env.STATS_COOLDOWN_SECONDS;
   });
 
   afterEach(() => {
-    cooldowns.clear();
+    vi.clearAllMocks();
   });
 
   it("parses username from @alice", async () => {
     setupDefaultMocks();
-    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    mockGetMemberByUsername.mockResolvedValue({ user_id: "200", first_name: "Alice" });
     const ctx = makeCtx({ match: "@alice" });
     await getHandler()(ctx);
     expect(mockGetMemberByUsername).toHaveBeenCalledWith("-100123", "alice");
@@ -344,7 +357,7 @@ describe("/stats @username", () => {
 
   it("parses username with extra space", async () => {
     setupDefaultMocks();
-    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    mockGetMemberByUsername.mockResolvedValue({ user_id: "200", first_name: "Alice" });
     const ctx = makeCtx({ match: "  @alice  " });
     await getHandler()(ctx);
     expect(mockGetMemberByUsername).toHaveBeenCalledWith("-100123", "alice");
@@ -352,7 +365,7 @@ describe("/stats @username", () => {
 
   it("preserves original casing for DB lookup", async () => {
     setupDefaultMocks();
-    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
+    mockGetMemberByUsername.mockResolvedValue({ user_id: "200", first_name: "Alice" });
     const ctx = makeCtx({ match: "@Alice" });
     await getHandler()(ctx);
     expect(mockGetMemberByUsername).toHaveBeenCalledWith("-100123", "Alice");
@@ -360,8 +373,8 @@ describe("/stats @username", () => {
 
   it("renders single-member dashboard for known user", async () => {
     setupDefaultMocks();
-    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
-    mockGetTotalMessages.mockReturnValue(50);
+    mockGetMemberByUsername.mockResolvedValue({ user_id: "200", first_name: "Alice" });
+    mockGetTotalMessages.mockResolvedValue(50);
     const ctx = makeCtx({ match: "@alice" });
     await getHandler()(ctx);
     expect(mockRender).toHaveBeenCalledTimes(1);
@@ -372,7 +385,7 @@ describe("/stats @username", () => {
 
   it("replies with not-found message for unknown user", async () => {
     setupDefaultMocks();
-    mockGetMemberByUsername.mockReturnValue(null);
+    mockGetMemberByUsername.mockResolvedValue(null);
     const ctx = makeCtx({ match: "@unknown" });
     await getHandler()(ctx);
     expect(ctx.reply).toHaveBeenCalledWith("I don't have any data for @unknown yet.");
@@ -381,8 +394,8 @@ describe("/stats @username", () => {
 
   it("single-member DashboardData has exactly 1 entry in members[]", async () => {
     setupDefaultMocks();
-    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
-    mockGetTotalMessages.mockReturnValue(50);
+    mockGetMemberByUsername.mockResolvedValue({ user_id: "200", first_name: "Alice" });
+    mockGetTotalMessages.mockResolvedValue(50);
     const ctx = makeCtx({ match: "@alice" });
     await getHandler()(ctx);
     const data = mockRender.mock.calls[0][0];
@@ -391,13 +404,17 @@ describe("/stats @username", () => {
 
   it("shares cooldown with /stats (same chat, same timer)", async () => {
     setupDefaultMocks();
-    mockGetMemberByUsername.mockReturnValue({ user_id: "200", first_name: "Alice" });
-    mockGetTotalMessages.mockReturnValue(50);
-    // First call: /stats @alice
+    mockGetMemberByUsername.mockResolvedValue({ user_id: "200", first_name: "Alice" });
+    mockGetTotalMessages.mockResolvedValue(50);
+    mockGetCooldown.mockResolvedValueOnce(null);
+
     const ctx1 = makeCtx({ match: "@alice" });
     await getHandler()(ctx1);
     expect(ctx1.replyWithPhoto).toHaveBeenCalled();
-    // Second call: /stats (group) - should be on cooldown
+
+    // Mock active cooldown
+    const futureTime = new Date(Date.now() + 300000).toISOString();
+    mockGetCooldown.mockResolvedValueOnce(futureTime);
     const ctx2 = makeCtx();
     await getHandler()(ctx2);
     expect(ctx2.reply).toHaveBeenCalledWith(expect.stringContaining("cooldown"));
@@ -448,7 +465,6 @@ describe("/threadhelp command", () => {
     const ctx = makeCtx();
     await getHandler("threadhelp")(ctx);
     const text = ctx.reply.mock.calls[0][0] as string;
-    // Each line should have a command and a description separated by —
     const lines = text.split("\n").filter((l: string) => l.trim().length > 0);
     for (const line of lines) {
       expect(line).toMatch(/^\/\S+.*—.+/);

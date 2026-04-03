@@ -1,7 +1,7 @@
 import { Composer, InputFile } from "grammy";
 import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
 import { renderer, type DashboardData, type MemberData } from "../renderer/renderer.js";
-import { getMemberByUsername } from "../db/db.js";
+import { getMemberByUsername, getCooldown, setCooldown } from "../db/db.js";
 
 const AVATAR_COLORS = [
   "#e57373", "#f06292", "#ba68c8", "#9575cd",
@@ -88,8 +88,6 @@ export function formatDateRange(): string {
   return `${MONTHS[startDate.getUTCMonth()]} ${startDate.getUTCFullYear()} – ${MONTHS[endDate.getUTCMonth()]} ${endDate.getUTCFullYear()}`;
 }
 
-export const cooldowns = new Map<string, number>();
-
 export function getCooldownMs(): number {
   const seconds = parseInt(process.env.STATS_COOLDOWN_SECONDS ?? "600", 10);
   return (isNaN(seconds) ? 600 : seconds) * 1000;
@@ -105,10 +103,11 @@ statsComposer.command("stats", async (ctx) => {
   const usernameMatch = rawMatch.match(/^@(\S+)$/);
   const targetUsername = usernameMatch ? usernameMatch[1] : null;
 
-  // Check cooldown
-  const lastCall = cooldowns.get(chatId);
+  // Check cooldown from database
+  const lastStatsAt = await getCooldown(chatId);
   const cooldownMs = getCooldownMs();
-  if (lastCall !== undefined) {
+  if (lastStatsAt !== null) {
+    const lastCall = new Date(lastStatsAt).getTime();
     const elapsed = Date.now() - lastCall;
     if (elapsed < cooldownMs) {
       const remainingMs = cooldownMs - elapsed;
@@ -124,14 +123,14 @@ statsComposer.command("stats", async (ctx) => {
 
   // Single-member lookup by username
   if (targetUsername !== null) {
-    const member = getMemberByUsername(chatId, targetUsername);
+    const member = await getMemberByUsername(chatId, targetUsername);
     if (!member) {
       await ctx.reply(`I don't have any data for @${targetUsername} yet.`);
       return;
     }
-    const dailyCounts = getDailyCountsForUser(chatId, member.user_id, 52);
+    const dailyCounts = await getDailyCountsForUser(chatId, member.user_id, 52);
     const streaks = computeStreaks(dailyCounts);
-    const total = getTotalMessages(chatId, member.user_id);
+    const total = await getTotalMessages(chatId, member.user_id);
     const memberData = buildMemberData(
       { user_id: member.user_id, first_name: member.first_name, totalCount: total },
       dailyCounts,
@@ -163,12 +162,12 @@ statsComposer.command("stats", async (ctx) => {
       caption: `Thread — activity report for ${groupName}`,
     });
 
-    cooldowns.set(chatId, Date.now());
+    await setCooldown(chatId, new Date().toISOString());
     return;
   }
 
   // Fetch group summary
-  const summary = getGroupSummary(chatId);
+  const summary = await getGroupSummary(chatId);
   if (summary.topMembers.length === 0) {
     await ctx.reply("No message data yet. Start chatting and try again later.");
     return;
@@ -177,9 +176,9 @@ statsComposer.command("stats", async (ctx) => {
   // Build member data
   const members: MemberData[] = [];
   for (const tm of summary.topMembers) {
-    const dailyCounts = getDailyCountsForUser(chatId, tm.user_id, 52);
+    const dailyCounts = await getDailyCountsForUser(chatId, tm.user_id, 52);
     const streaks = computeStreaks(dailyCounts);
-    const total = getTotalMessages(chatId, tm.user_id);
+    const total = await getTotalMessages(chatId, tm.user_id);
     members.push(buildMemberData(tm, dailyCounts, streaks, total));
   }
 
@@ -210,7 +209,7 @@ statsComposer.command("stats", async (ctx) => {
   });
 
   // Set cooldown only after successful send
-  cooldowns.set(chatId, Date.now());
+  await setCooldown(chatId, new Date().toISOString());
 });
 
 statsComposer.command("threadhelp", async (ctx) => {

@@ -8,7 +8,8 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "webhook:set": "node -e \"fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setWebhook?url=${process.env.VERCEL_URL}/api/webhook`).then(r=>r.json()).then(console.log)\""
   },
   "repository": {
     "type": "git",
@@ -22,18 +23,17 @@
   },
   "homepage": "https://github.com/AruneemB/thread#readme",
   "dependencies": {
-    "better-sqlite3": "^12.8.0",
-    "dotenv": "^17.3.1",
+    "@libsql/client": "^0.14.0",
+    "@sparticuz/chromium": "^131.0.0",
     "grammy": "^1.41.1",
-    "node-cron": "^4.2.1",
     "pino": "^10.3.1",
-    "playwright": "^1.58.2",
+    "puppeteer-core": "^23.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.0",
-    "@types/node-cron": "^3.0.11",
+    "@vercel/node": "^3.2.26",
+    "dotenv": "^17.3.1",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2",
     "vitest": "^4.1.1"

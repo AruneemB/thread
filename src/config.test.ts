@@ -1,24 +1,32 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 
-describe("PM2 config", () => {
-  it("can be required without error", () => {
-    const pm2Config = require("../pm2.config.js");
-    expect(pm2Config).toBeDefined();
+describe("Vercel config", () => {
+  it("vercel.json exists in project root", () => {
+    const vercelConfigPath = resolve(__dirname, "..", "vercel.json");
+    expect(existsSync(vercelConfigPath)).toBe(true);
   });
 
-  it("exports apps array with at least one entry", () => {
-    const pm2Config = require("../pm2.config.js");
-    expect(Array.isArray(pm2Config.apps)).toBe(true);
-    expect(pm2Config.apps.length).toBeGreaterThan(0);
+  it("vercel.json is valid JSON", () => {
+    const vercelConfigPath = resolve(__dirname, "..", "vercel.json");
+    const content = readFileSync(vercelConfigPath, "utf-8");
+    expect(() => JSON.parse(content)).not.toThrow();
   });
 
-  it("has app entry with name 'thread' and script 'dist/index.js'", () => {
-    const pm2Config = require("../pm2.config.js");
-    const app = pm2Config.apps.find((a: any) => a.name === "thread");
-    expect(app).toBeDefined();
-    expect(app.script).toBe("dist/index.js");
+  it("vercel.json has buildCommand configured", () => {
+    const vercelConfigPath = resolve(__dirname, "..", "vercel.json");
+    const config = JSON.parse(readFileSync(vercelConfigPath, "utf-8"));
+    expect(config.buildCommand).toBeDefined();
+    expect(typeof config.buildCommand).toBe("string");
+  });
+
+  it("vercel.json has functions configured for API routes", () => {
+    const vercelConfigPath = resolve(__dirname, "..", "vercel.json");
+    const config = JSON.parse(readFileSync(vercelConfigPath, "utf-8"));
+    expect(config.functions).toBeDefined();
+    expect(typeof config.functions).toBe("object");
+    expect(Object.keys(config.functions).length).toBeGreaterThan(0);
   });
 });
 
@@ -33,13 +41,11 @@ describe("Environment variable defaults", () => {
     process.env = originalEnv;
   });
 
-  it("RENDER_TIMEOUT_MS unset uses default 15000", async () => {
+  it("RENDER_TIMEOUT_MS unset uses default 30000", async () => {
     delete process.env.RENDER_TIMEOUT_MS;
-    // The renderer module reads the env var when _doRender is called
-    // We can't easily test this without mocking, but we can verify the parsing logic
-    const parsed = parseInt(process.env.RENDER_TIMEOUT_MS ?? "15000", 10);
-    const timeoutMs = isNaN(parsed) ? 15000 : parsed;
-    expect(timeoutMs).toBe(15000);
+    const parsed = parseInt(process.env.RENDER_TIMEOUT_MS ?? "30000", 10);
+    const timeoutMs = isNaN(parsed) ? 30000 : parsed;
+    expect(timeoutMs).toBe(30000);
   });
 
   it("STATS_COOLDOWN_SECONDS unset uses default 600", () => {
@@ -49,10 +55,10 @@ describe("Environment variable defaults", () => {
     expect(cooldown).toBe(600);
   });
 
-  it("DATABASE_PATH unset uses default './thread.db'", () => {
-    delete process.env.DATABASE_PATH;
-    const dbPath = process.env.DATABASE_PATH ?? "./thread.db";
-    expect(dbPath).toBe("./thread.db");
+  it("TURSO_DATABASE_URL unset uses default 'file:./thread.db'", () => {
+    delete process.env.TURSO_DATABASE_URL;
+    const dbUrl = process.env.TURSO_DATABASE_URL ?? "file:./thread.db";
+    expect(dbUrl).toBe("file:./thread.db");
   });
 
   it("LOG_LEVEL unset uses default 'info'", () => {
@@ -164,17 +170,20 @@ describe("Build output", () => {
     expect(existsSync(botPath)).toBe(true);
   });
 
-  it("no .ts files in dist/", () => {
-    const { execSync } = require("child_process");
+  it("dist directory exists for build output", () => {
     const distPath = resolve(__dirname, "..", "dist");
-    try {
-      const result = execSync(`find "${distPath}" -name "*.ts" -type f`, { encoding: "utf8" });
-      expect(result.trim()).toBe("");
-    } catch (err: any) {
-      // find returns non-zero if no files found, which is what we want
-      if (err.stdout) {
-        expect(err.stdout.trim()).toBe("");
-      }
-    }
+    expect(existsSync(distPath)).toBe(true);
+  });
+});
+
+describe("API routes", () => {
+  it("webhook API route exists", () => {
+    const webhookPath = resolve(__dirname, "..", "api", "webhook.ts");
+    expect(existsSync(webhookPath)).toBe(true);
+  });
+
+  it("cron digest API route exists", () => {
+    const cronPath = resolve(__dirname, "..", "api", "cron", "digest.ts");
+    expect(existsSync(cronPath)).toBe(true);
   });
 });

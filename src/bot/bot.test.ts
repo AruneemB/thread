@@ -35,10 +35,6 @@ vi.mock("../renderer/renderer.js", () => ({
   closeRenderer: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../scheduler/scheduler.js", () => ({
-  stopScheduler: vi.fn(),
-}));
-
 vi.mock("../utils/logger.js", () => ({
   logger: {
     child: vi.fn(() => ({
@@ -95,51 +91,6 @@ describe("Bot instance", () => {
     expect(typeof bot.stop).toBe("function");
     expect(typeof bot.on).toBe("function");
     expect(typeof bot.command).toBe("function");
-  });
-});
-
-describe("Shutdown handlers", () => {
-  let mod: Awaited<ReturnType<typeof import("./bot.js")>>;
-  let closeDb: ReturnType<typeof vi.fn>;
-  let exitSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(async () => {
-    vi.resetModules();
-    process.env.TELEGRAM_BOT_TOKEN = "test-token-123";
-    exitSpy = vi.spyOn(process, "exit").mockImplementation((() => {}) as never);
-    mod = await import("./bot.js");
-    const dbMod = await import("../db/db.js");
-    closeDb = dbMod.closeDb as unknown as ReturnType<typeof vi.fn>;
-    closeDb.mockClear();
-  });
-
-  afterEach(() => {
-    exitSpy.mockRestore();
-    process.removeAllListeners("SIGTERM");
-    process.removeAllListeners("SIGINT");
-  });
-
-  it("calls bot.stop() on SIGTERM shutdown", async () => {
-    await mod._shutdown("SIGTERM");
-    expect(mod.bot.stop).toHaveBeenCalled();
-  });
-
-  it("calls closeDb() on SIGTERM shutdown", async () => {
-    await mod._shutdown("SIGTERM");
-    expect(closeDb).toHaveBeenCalled();
-  });
-
-  it("calls bot.stop() and closeDb() on SIGINT shutdown", async () => {
-    await mod._shutdown("SIGINT");
-    expect(mod.bot.stop).toHaveBeenCalled();
-    expect(closeDb).toHaveBeenCalled();
-  });
-
-  it("is idempotent — second call does not invoke stop/closeDb again", async () => {
-    await mod._shutdown("SIGTERM");
-    await mod._shutdown("SIGTERM");
-    expect(mod.bot.stop).toHaveBeenCalledTimes(1);
-    expect(closeDb).toHaveBeenCalledTimes(1);
   });
 });
 

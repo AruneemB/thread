@@ -13,13 +13,13 @@ mystatsComposer.command("mystats", async (ctx) => {
   const firstName = ctx.from.first_name;
   const groupName = ctx.chat.title ?? "Group Chat";
 
-  const total = getTotalMessages(chatId, userId);
+  const total = await getTotalMessages(chatId, userId);
   if (total === 0) {
     await ctx.reply("I don't have any stats for you in this chat yet.");
     return;
   }
 
-  const dailyCounts = getDailyCountsForUser(chatId, userId, 52);
+  const dailyCounts = await getDailyCountsForUser(chatId, userId, 52);
   const streaks = computeStreaks(dailyCounts);
   const memberData = buildMemberData(
     { user_id: userId, first_name: firstName, totalCount: total },

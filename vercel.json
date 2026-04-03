@@ -1,0 +1,21 @@
+{
+  "buildCommand": "npm run build",
+  "functions": {
+    "api/webhook.ts": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "includeFiles": "src/templates/**"
+    },
+    "api/cron/digest.ts": {
+      "maxDuration": 120,
+      "memory": 1024,
+      "includeFiles": "src/templates/**"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/digest",
+      "schedule": "0 9 * * 1"
+    }
+  ]
+}

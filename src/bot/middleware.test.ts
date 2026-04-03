@@ -14,7 +14,7 @@ function createFakeBot() {
   const handlers: Record<string, Function> = {};
   return {
     on: vi.fn((event: string, handler: Function) => { handlers[event] = handler; }),
-    _trigger: (event: string, ctx: unknown) => { handlers[event]?.(ctx); },
+    _trigger: async (event: string, ctx: unknown) => { await handlers[event]?.(ctx); },
   };
 }
 
@@ -83,25 +83,27 @@ describe("Database persistence", () => {
   beforeEach(() => {
     mockedUpsertMember.mockClear();
     mockedInsertMessage.mockClear();
+    mockedUpsertMember.mockResolvedValue(undefined);
+    mockedInsertMessage.mockResolvedValue(undefined);
   });
 
-  it("calls upsertMember and insertMessage for a text message", () => {
+  it("calls upsertMember and insertMessage for a text message", async () => {
     const bot = createFakeBot();
     const logger = createFakeLogger();
     registerMessageHandler(bot as never, logger as never);
 
-    bot._trigger("message", createMessageCtx());
+    await bot._trigger("message", createMessageCtx());
 
     expect(mockedUpsertMember).toHaveBeenCalledTimes(1);
     expect(mockedInsertMessage).toHaveBeenCalledTimes(1);
   });
 
-  it("passes chat_id and user_id as strings, not numbers", () => {
+  it("passes chat_id and user_id as strings, not numbers", async () => {
     const bot = createFakeBot();
     const logger = createFakeLogger();
     registerMessageHandler(bot as never, logger as never);
 
-    bot._trigger("message", createMessageCtx());
+    await bot._trigger("message", createMessageCtx());
 
     const memberArg = mockedUpsertMember.mock.calls[0][0];
     expect(typeof memberArg.chat_id).toBe("string");
@@ -112,12 +114,12 @@ describe("Database persistence", () => {
     expect(typeof msgArg.user_id).toBe("string");
   });
 
-  it("passes username as null when from.username is undefined", () => {
+  it("passes username as null when from.username is undefined", async () => {
     const bot = createFakeBot();
     const logger = createFakeLogger();
     registerMessageHandler(bot as never, logger as never);
 
-    bot._trigger("message", createMessageCtx({
+    await bot._trigger("message", createMessageCtx({
       from: { id: 67890, first_name: "Test" },
     }));
 
@@ -128,12 +130,12 @@ describe("Database persistence", () => {
     expect(msgArg.username).toBeNull();
   });
 
-  it("never passes message text to insertMessage", () => {
+  it("never passes message text to insertMessage", async () => {
     const bot = createFakeBot();
     const logger = createFakeLogger();
     registerMessageHandler(bot as never, logger as never);
 
-    bot._trigger("message", createMessageCtx({ text: "secret content" }));
+    await bot._trigger("message", createMessageCtx({ text: "secret content" }));
 
     const msgArg = mockedInsertMessage.mock.calls[0][0];
     const allValues = Object.values(msgArg);
@@ -147,47 +149,51 @@ describe("Error boundary", () => {
     mockedInsertMessage.mockReset();
   });
 
-  it("does not re-throw when insertMessage throws", () => {
-    mockedInsertMessage.mockImplementation(() => { throw new Error("DB insert error"); });
+  it("does not re-throw when insertMessage throws", async () => {
+    mockedUpsertMember.mockResolvedValue(undefined);
+    mockedInsertMessage.mockRejectedValue(new Error("DB insert error"));
     const bot = createFakeBot();
     const logger = createFakeLogger();
     registerMessageHandler(bot as never, logger as never);
 
-    expect(() => bot._trigger("message", createMessageCtx())).not.toThrow();
+    await expect(bot._trigger("message", createMessageCtx())).resolves.not.toThrow();
   });
 
-  it("still calls insertMessage when upsertMember throws", () => {
-    mockedUpsertMember.mockImplementation(() => { throw new Error("DB upsert error"); });
+  it("still calls insertMessage when upsertMember throws", async () => {
+    mockedUpsertMember.mockRejectedValue(new Error("DB upsert error"));
+    mockedInsertMessage.mockResolvedValue(undefined);
     const bot = createFakeBot();
     const logger = createFakeLogger();
     registerMessageHandler(bot as never, logger as never);
 
-    bot._trigger("message", createMessageCtx());
+    await bot._trigger("message", createMessageCtx());
 
     expect(mockedInsertMessage).toHaveBeenCalledTimes(1);
   });
 
-  it("processes next message normally after a DB error", () => {
+  it("processes next message normally after a DB error", async () => {
     let callCount = 0;
-    mockedUpsertMember.mockImplementation(() => {
+    mockedUpsertMember.mockImplementation(async () => {
       callCount++;
       if (callCount === 1) throw new Error("DB error");
     });
+    mockedInsertMessage.mockResolvedValue(undefined);
     const bot = createFakeBot();
     const logger = createFakeLogger();
     registerMessageHandler(bot as never, logger as never);
 
-    bot._trigger("message", createMessageCtx());
-    expect(() => bot._trigger("message", createMessageCtx())).not.toThrow();
+    await bot._trigger("message", createMessageCtx());
+    await expect(bot._trigger("message", createMessageCtx())).resolves.not.toThrow();
   });
 
-  it("logs error with chat_id and user_id context", () => {
-    mockedUpsertMember.mockImplementation(() => { throw new Error("DB error"); });
+  it("logs error with chat_id and user_id context", async () => {
+    mockedUpsertMember.mockRejectedValue(new Error("DB error"));
+    mockedInsertMessage.mockResolvedValue(undefined);
     const bot = createFakeBot();
     const logger = createFakeLogger();
     registerMessageHandler(bot as never, logger as never);
 
-    bot._trigger("message", createMessageCtx());
+    await bot._trigger("message", createMessageCtx());
 
     expect(logger.error).toHaveBeenCalled();
     const errorCallArgs = logger.error.mock.calls[0][0];
