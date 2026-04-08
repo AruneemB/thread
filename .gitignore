@@ -19,7 +19,4 @@ dist/
 .vscode/
 
 # Project documentation (ignored for implementation)
-THREAD-INSIGHTS.md
-THREAD-NEXT-STEPS.md
-THREAD-SPEC.md
-THREAD-DEPLOYMENT.md
+docs-thread/
