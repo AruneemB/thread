@@ -66,5 +66,76 @@
     </style>
 </head>
 <body>
+    <header class="page-header">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 85">
+            <style>
+                .wordmark { fill: #1a1a1a; }
+                @media (prefers-color-scheme: dark) {
+                    .wordmark { fill: #f0f0f0; }
+                }
+            </style>
+            <!--
+                Thread logo — contribution grid with a diagonal "thread" of
+                darkening commits, plus wordmark.
+            -->
+
+            <!-- Contribution grid (5 cols × 7 rows, 10×10 cells, 2.5 gap) -->
+            <g>
+                <!-- Mon -->
+                <rect x="0"    y="0"    width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+                <rect x="12.5" y="0"    width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+                <rect x="25"   y="0"    width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="37.5" y="0"    width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="50"   y="0"    width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+
+                <!-- Tue -->
+                <rect x="0"    y="12.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="12.5" y="12.5" width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+                <rect x="25"   y="12.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="37.5" y="12.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="50"   y="12.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+
+                <!-- Wed -->
+                <rect x="0"    y="25"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="12.5" y="25"   width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+                <rect x="25"   y="25"   width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+                <rect x="37.5" y="25"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="50"   y="25"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+
+                <!-- Thu -->
+                <rect x="0"    y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="12.5" y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="25"   y="37.5" width="10" height="10" rx="2.5" fill="#1d9e75"/>
+                <rect x="37.5" y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="50"   y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+
+                <!-- Fri -->
+                <rect x="0"    y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="12.5" y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="25"   y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+                <rect x="37.5" y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+                <rect x="50"   y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+
+                <!-- Sat -->
+                <rect x="0"    y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="12.5" y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="25"   y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="37.5" y="62.5" width="10" height="10" rx="2.5" fill="#0f6e56"/>
+                <rect x="50"   y="62.5" width="10" height="10" rx="2.5" fill="#0f6e56"/>
+
+                <!-- Sun -->
+                <rect x="0"    y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="12.5" y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="25"   y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="37.5" y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="50" y="75" width="10" height="10" rx="2.5" fill="#0f6e56"/>
+            </g>
+
+            <!-- Wordmark -->
+            <text class="wordmark" x="76" y="57"
+                  font-family="'Iowan Old Style',Charter,'Sitka Display','Cambria',serif"
+                  font-size="52" font-weight="700" letter-spacing="0.5">Thread</text>
+        </svg>
+    </header>
 </body>
 </html>
