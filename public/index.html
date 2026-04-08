@@ -146,6 +146,33 @@
             color: var(--text);
             font-weight: 600;
         }
+
+        .instructions {
+            margin-top: 2rem;
+            text-align: left;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .instructions h2 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .instructions ol {
+            padding-left: 1.25rem;
+        }
+
+        .instructions li {
+            margin-bottom: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -229,5 +256,14 @@
 
     <button id="demo-btn" class="demo-button">Try with sample data</button>
     <div class="privacy-notice">🔒 Your data <strong>never leaves this page</strong></div>
+
+    <div class="instructions">
+        <h2>How it works:</h2>
+        <ol>
+            <li>Export chat from Telegram Desktop</li>
+            <li>Drop result.json here</li>
+            <li>See who's most active</li>
+        </ol>
+    </div>
 </body>
 </html>
