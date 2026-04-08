@@ -181,6 +181,33 @@
             flex-direction: column;
             align-items: center;
         }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .dashboard-logo {
+            width: 40px;
+            height: auto;
+        }
+
+        .dashboard-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -275,6 +302,60 @@
             </ol>
         </div>
     </footer>
-    <div id="dashboard" class="dashboard" style="display: none;"></div>
+    <div id="dashboard" class="dashboard" style="display: none;">
+        <header class="dashboard-header">
+            <div class="header-left">
+                <svg class="dashboard-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 85">
+                    <style>
+                        .wordmark { fill: #1a1a1a; }
+                        @media (prefers-color-scheme: dark) {
+                            .wordmark { fill: #f0f0f0; }
+                        }
+                    </style>
+                    <g>
+                        <rect x="0"    y="0"    width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+                        <rect x="12.5" y="0"    width="10" height="10" rx="2.5" fill="#9fe1cb"/>
+                        <rect x="25"   y="0"    width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="37.5" y="0"    width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="50"   y="0"    width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="0"    y="12.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="12.5" y="12.5" width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+                        <rect x="25"   y="12.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="37.5" y="12.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="50"   y="12.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="0"    y="25"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="12.5" y="25"   width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+                        <rect x="25"   y="25"   width="10" height="10" rx="2.5" fill="#5dcaa5"/>
+                        <rect x="37.5" y="25"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="50"   y="25"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="0"    y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="12.5" y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="25"   y="37.5" width="10" height="10" rx="2.5" fill="#1d9e75"/>
+                        <rect x="37.5" y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="50"   y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="0"    y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="12.5" y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="25"   y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+                        <rect x="37.5" y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+                        <rect x="50"   y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="0"    y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="12.5" y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="25"   y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="37.5" y="62.5" width="10" height="10" rx="2.5" fill="#0f6e56"/>
+                        <rect x="50"   y="62.5" width="10" height="10" rx="2.5" fill="#0f6e56"/>
+                        <rect x="0"    y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="12.5" y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="25"   y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="37.5" y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                        <rect x="50" y="75" width="10" height="10" rx="2.5" fill="#0f6e56"/>
+                    </g>
+                    <text class="wordmark" x="76" y="57" font-family="'Iowan Old Style',Charter,'Sitka Display','Cambria',serif" font-size="52" font-weight="700" letter-spacing="0.5">Thread</text>
+                </svg>
+                <h2 class="dashboard-title">Chat Stats</h2>
+            </div>
+            <div class="header-right">
+            </div>
+        </header>
+    </div>
 </body>
 </html>
