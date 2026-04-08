@@ -15,10 +15,11 @@ api/**/*.js.map
 *.db-wal
 
 # Local development files
+GEMINI.md
 .history/
 .specstory/
 .claude/
 .vscode/
 
-# Project documentation (ignored for implementation)
+# Project documentation
 docs-thread/
