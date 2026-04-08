@@ -173,6 +173,14 @@
         .instructions li {
             margin-bottom: 0.25rem;
         }
+
+        .landing-footer {
+            padding: 2rem 0 3rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -254,16 +262,18 @@
         <input type="file" accept=".json" id="file-input" style="display: none;">
     </div>
 
-    <button id="demo-btn" class="demo-button">Try with sample data</button>
-    <div class="privacy-notice">🔒 Your data <strong>never leaves this page</strong></div>
+    <footer class="landing-footer">
+        <button id="demo-btn" class="demo-button">Try with sample data</button>
+        <div class="privacy-notice">🔒 Your data <strong>never leaves this page</strong></div>
 
-    <div class="instructions">
-        <h2>How it works:</h2>
-        <ol>
-            <li>Export chat from Telegram Desktop</li>
-            <li>Drop result.json here</li>
-            <li>See who's most active</li>
-        </ol>
-    </div>
+        <div class="instructions">
+            <h2>How it works:</h2>
+            <ol>
+                <li>Export chat from Telegram Desktop</li>
+                <li>Drop result.json here</li>
+                <li>See who's most active</li>
+            </ol>
+        </div>
+    </footer>
 </body>
 </html>
