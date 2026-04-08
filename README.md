@@ -1,11 +1,9 @@
 <p align="center">
-  <img src="src/templates/favicon.svg" width="120" alt="Thread logo">
+  <img src="src/templates/logo.svg" width="120" alt="Thread logo">
 </p>
 
-<h1 align="center">Thread</h1>
-
 <p align="center">
-  <strong>Every message is a commit. Visualize your group's contribution history.</strong>
+  <strong>Every message is a commit. Visualize your Telegram group's contribution history.</strong>
 </p>
 
 <p align="center">
