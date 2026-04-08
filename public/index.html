@@ -185,6 +185,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            margin-bottom: 1.5rem;
         }
 
         .header-left {
@@ -330,7 +333,7 @@
     <div id="dashboard" class="dashboard" style="display: none;">
         <header class="dashboard-header">
             <div class="header-left">
-                <svg class="dashboard-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 85">
+                <svg id="dashboard-logo-btn" class="dashboard-logo interactive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 85">
                     <style>
                         .wordmark { fill: #1a1a1a; }
                         @media (prefers-color-scheme: dark) {
