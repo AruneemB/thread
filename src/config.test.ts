@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { existsSync, readFileSync } from "fs";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+import pino from "pino";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe("Vercel config", () => {
   it("vercel.json exists in project root", () => {
@@ -141,7 +145,6 @@ describe("Structured logging", () => {
   });
 
   it("LOG_LEVEL=error suppresses info-level entries", () => {
-    const pino = require("pino");
     const errorLogger = pino({ level: "error" });
 
     logOutput = [];

@@ -1,12 +1,13 @@
 {
   "name": "thread",
   "version": "1.0.0",
+  "type": "module",
   "description": "Every message is a commit. Thread visualizes your Telegram group chats as a contribution graph, tracking streaks, activity patterns, and who keeps the conversation alive.",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "dev": "ts-node-esm src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "webhook:set": "node -e \"fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setWebhook?url=${process.env.VERCEL_URL}/api/webhook`).then(r=>r.json()).then(console.log)\""

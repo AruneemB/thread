@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
 import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = resolve(__dirname, "dashboard.html");
 const templateHtml = readFileSync(TEMPLATE_PATH, "utf-8");
 

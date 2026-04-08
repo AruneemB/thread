@@ -1,12 +1,12 @@
 import puppeteer, { type Browser } from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import { resolve } from "path";
+import { join } from "path";
 import { readFileSync } from "fs";
 import { logger as rootLogger } from "../utils/logger.js";
 
 const logger = rootLogger.child({ module: "renderer" });
 
-const TEMPLATE_PATH = resolve(__dirname, "..", "templates", "dashboard.html");
+const TEMPLATE_PATH = join(process.cwd(), "src", "templates", "dashboard.html");
 const templateHtml = readFileSync(TEMPLATE_PATH, "utf-8");
 
 export interface MemberData {

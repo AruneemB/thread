@@ -3,6 +3,8 @@ node_modules/
 
 # Build output
 dist/
+api/**/*.js
+api/**/*.js.map
 
 # Environment
 .env
