@@ -114,6 +114,26 @@
             background: var(--bg);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
+
+        .demo-button {
+            display: inline-block;
+            background: transparent;
+            border: 1px solid var(--teal-500);
+            color: var(--teal-600);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            margin: 1rem 0;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .demo-button:hover {
+            background: var(--teal-500);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -194,5 +214,7 @@
         <p>Drop JSON here or click to browse files</p>
         <input type="file" accept=".json" id="file-input" style="display: none;">
     </div>
+
+    <button id="demo-btn" class="demo-button">Try with sample data</button>
 </body>
 </html>
