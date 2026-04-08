@@ -1,117 +1,122 @@
 <p align="center">
-  <img src="src/templates/logo.svg" width="380" alt="Thread" />
+  <img src="src/templates/favicon.svg" width="120" alt="Thread logo">
 </p>
 
-<p align="center"><em>Every message is a commit.</em></p>
+<h1 align="center">Thread</h1>
 
-Thread visualizes your Telegram group chats as a contribution graph, tracking streaks, activity patterns, and who keeps the conversation alive.
+<p align="center">
+  <strong>Every message is a commit. Visualize your group's contribution history.</strong>
+</p>
 
-## Features
+<p align="center">
+  <img src="https://img.shields.io/badge/Node.js-20+-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/TypeScript-6.0.2-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/grammY-1.41.1-0088CC?style=flat-square&logo=telegram&logoColor=white" alt="grammY">
+  <img src="https://img.shields.io/badge/Turso-0.14.0-4ACBD0?style=flat-square&logo=sqlite&logoColor=white" alt="Turso">
+  <img src="https://img.shields.io/badge/Vitest-4.1.1-6E9F18?style=flat-square&logo=vitest&logoColor=white" alt="Vitest">
+  <img src="https://img.shields.io/badge/Vercel-Deployed-000000?style=flat-square&logo=vercel&logoColor=white" alt="Vercel">
+</p>
 
-- **Contribution Graphs**: GitHub-style activity visualization for each member
-- **Streak Tracking**: Current and longest message streaks
-- **Group Statistics**: Aggregate stats with `/stats` command
-- **Personal Insights**: Individual stats with `/mystats` command
-- **Weekly Digests**: Automated weekly summaries sent to active chats (Mondays at 09:00 UTC)
+---
 
-## Prerequisites
+Thread visualizes your Telegram group chats as a contribution graph, tracking streaks, activity patterns, and who keeps the conversation alive. By treating every message as a "commit," it brings a developer-centric gamification layer to social interactions.
 
-- Node.js 20 or higher
-- npm (comes with Node.js)
-- Turso account (for remote database hosting)
-- Vercel account (for serverless deployment)
+## 🚀 Key Features
 
-## Local Development
+- **Contribution Graphs**: GitHub-style activity visualization for each group member.
+- **Streak Tracking**: Real-time tracking of current and longest message streaks.
+- **Group Statistics**: Comprehensive aggregate stats via the `/stats` command.
+- **Personal Insights**: Individual performance metrics accessible through `/mystats`.
+- **Weekly Digests**: Automated summaries sent every Monday at 09:00 UTC.
+- **Serverless Architecture**: Built for high availability and low latency on Vercel.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/thread.git
-   cd thread
-   ```
+## 🛠 Tech Stack
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Thread is built on a modern, serverless-first stack:
 
-3. Create a `.env` file:
-   ```bash
-   cp .env.example .env
-   ```
+### Core Logic
+- **Framework**: [grammY](https://grammy.dev/) for robust Telegram bot interaction.
+- **Language**: TypeScript for type-safe state and command handling.
+- **Database**: [Turso](https://turso.tech/) (libSQL) for distributed, low-latency SQLite storage.
+- **Validation**: [Zod](https://zod.dev/) for strict schema validation of environment and data.
 
-4. Edit `.env` and add your configuration:
-   ```
-   TELEGRAM_BOT_TOKEN=your_token_here
-   TURSO_DATABASE_URL=file:./thread.db
-   LOG_LEVEL=info
-   ```
+### Rendering & Infrastructure
+- **Graphics**: Puppeteer + Chromium for high-fidelity contribution graph rendering.
+- **Deployment**: Vercel for serverless function hosting and automated cron jobs.
+- **Logging**: Pino for high-performance, structured logging.
 
-5. Run in development mode (polling):
-   ```bash
-   npm run dev
-   ```
+### Testing
+- **Framework**: Vitest for fast, reliable unit and integration testing.
+- **Coverage**: Comprehensive testing of commands, middleware, and database logic.
 
-## Deployment to Vercel
+## 📐 Roadmap
 
-1. **Create a Turso database:**
-   ```bash
-   turso db create thread-bot
-   turso db show thread-bot
-   turso db tokens create thread-bot
-   ```
+Thread is continuously evolving. Upcoming milestones include:
 
-2. **Deploy to Vercel:**
-   ```bash
-   vercel
-   ```
+- **Web Dashboard**: A standalone visual interface for historical data exploration.
+- **LLM Insights**: AI-powered summaries of chat themes and sentiment analysis.
+- **Custom Themes**: Pluggable color schemes for contribution graphs.
+- **Extended Analytics**: Heatmaps for hour-by-hour activity patterns.
+- **Multiple Platform Support**: Bringing contribution graphs to Discord and Slack.
 
-3. **Set environment variables in Vercel dashboard:**
-   - `TELEGRAM_BOT_TOKEN` - Your bot token from [@BotFather](https://t.me/botfather)
-   - `TURSO_DATABASE_URL` - Your Turso database URL (e.g., `libsql://your-db.turso.io`)
-   - `TURSO_AUTH_TOKEN` - Your Turso authentication token
-   - `CRON_SECRET` - Random secret for cron authentication (Vercel auto-generates)
-   - `LOG_LEVEL` - `info`
-   - `RENDER_TIMEOUT_MS` - `30000`
-   - `STATS_COOLDOWN_SECONDS` - `600`
-   - `WEEKLY_DIGEST_ENABLED` - `true`
+## 🚦 Getting Started
 
-4. **Configure webhook:**
-   ```bash
-   VERCEL_URL=your-deployment.vercel.app npm run webhook:set
-   ```
+### 1. Clone the Repository
+```bash
+git clone https://github.com/AruneemB/thread.git
+cd thread
+```
 
-5. **Verify deployment:**
-   - Send `/stats` in your Telegram group
-   - Check Vercel logs for function invocations
-   - Weekly digest runs every Monday at 09:00 UTC
+### 2. Local Setup
+```bash
+# Install dependencies
+npm install
 
-## Available Commands
+# Configure environment
+cp .env.example .env
+# Edit .env with your TELEGRAM_BOT_TOKEN and TURSO_DATABASE_URL
 
-| Command | Description |
-|---------|-------------|
-| `/stats` | Show contribution graph and activity for all group members |
-| `/stats @username` | Show stats for a specific member |
-| `/mystats` | Show your personal statistics |
-| `/threadhelp` | Display help information |
+# Run in development mode (polling)
+npm run dev
 
-## Environment Variables
+# Run tests
+npm test
+```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TELEGRAM_BOT_TOKEN` | (required) | Your Telegram bot token from [@BotFather](https://t.me/botfather) |
-| `TURSO_DATABASE_URL` | `file:./thread.db` | Turso database URL (`file:./thread.db` for local, `libsql://...` for production) |
-| `TURSO_AUTH_TOKEN` | - | Turso authentication token (required for remote database) |
-| `CRON_SECRET` | - | Secret for authenticating Vercel Cron requests (auto-generated by Vercel) |
-| `LOG_LEVEL` | `info` | Logging level (`debug`, `info`, `warn`, `error`) |
-| `RENDER_TIMEOUT_MS` | `30000` | Browser render timeout in milliseconds |
-| `STATS_COOLDOWN_SECONDS` | `600` | Cooldown between stats requests (per chat) |
-| `WEEKLY_DIGEST_ENABLED` | `true` | Enable/disable weekly digest job |
+### 3. Deployment (Vercel)
+```bash
+# Create Turso database
+turso db create thread-bot
 
-## Architecture
+# Deploy to Vercel
+vercel
 
-Thread runs as a serverless application on Vercel:
-- **Webhooks**: Telegram updates sent to `/api/webhook` endpoint
-- **Cron Jobs**: Weekly digest runs via Vercel Cron (`/api/cron/digest`)
-- **Database**: Turso (libSQL) for remote SQLite with async queries
-- **Rendering**: puppeteer-core + @sparticuz/chromium for Lambda-optimized screenshots
-- **Cooldowns**: Database-backed instead of in-memory
+# Set environment variables in Vercel dashboard:
+# TELEGRAM_BOT_TOKEN, TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, CRON_SECRET
+
+# Configure webhook
+VERCEL_URL=your-deployment.vercel.app npm run webhook:set
+```
+
+## 📂 Project Structure
+
+```text
+├── api/                # Vercel Serverless Functions (Webhooks & Cron)
+│   ├── webhook.ts      # Main Telegram webhook entry point
+│   └── cron/           # Scheduled jobs (Weekly digest)
+├── src/                # Core application logic
+│   ├── bot/            # grammY bot setup and middleware
+│   ├── commands/       # Bot command handlers (/stats, /mystats)
+│   ├── db/             # Database access layer (DAL)
+│   ├── renderer/       # Graph rendering logic using Puppeteer
+│   ├── templates/      # HTML/SVG templates for visualizations
+│   └── utils/          # Logging and shared utility functions
+├── vitest.config.ts    # Testing configuration
+└── vercel.json         # Vercel deployment and cron configuration
+```
+
+---
+
+<p align="center">
+  <i>Every message is a commit.</i>
+</p>
