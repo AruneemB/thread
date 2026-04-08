@@ -208,6 +208,20 @@
             align-items: center;
             gap: 1rem;
         }
+
+        .action-button {
+            background: var(--teal-500);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .action-button:hover {
+            background: var(--teal-600);
+        }
     </style>
 </head>
 <body>
@@ -354,6 +368,7 @@
                 <h2 class="dashboard-title">Chat Stats</h2>
             </div>
             <div class="header-right">
+                <button id="download-btn" class="action-button">Download as PNG</button>
             </div>
         </header>
     </div>
