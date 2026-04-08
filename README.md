@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/templates/logo.svg" width="600" alt="Thread logo">
+  <img src="src/templates/logo.svg" width="400" alt="Thread">
 </p>
 
 <p align="center">
