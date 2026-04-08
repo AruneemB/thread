@@ -28,6 +28,15 @@ Thread visualizes your Telegram group chats as a contribution graph, tracking st
 - **Weekly Digests**: Automated summaries sent every Monday at 09:00 UTC.
 - **Serverless Architecture**: Built for high availability and low latency on Vercel.
 
+## 🤖 Bot Commands
+
+Interact with Thread using the following commands:
+
+- **`/stats`**: Generates a full activity dashboard for the current group chat, showing a contribution heat-map for top active members.
+- **`/stats @username`**: Displays a single member's activity card for the group.
+- **`/mystats`**: Sends your personal activity card for the current group directly to your DMs (keeps the group chat clean!).
+- **`/threadhelp`**: Displays a help message with all available commands and their usage.
+
 ## 🛠 Tech Stack
 
 Thread is built on a modern, serverless-first stack:
