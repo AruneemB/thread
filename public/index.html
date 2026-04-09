@@ -435,6 +435,22 @@
             justify-content: space-between;
             width: 100%;
         }
+
+        .calendar-body {
+            display: flex;
+            gap: 8px;
+        }
+
+        .day-labels {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 0.625rem;
+            color: var(--text-secondary);
+            width: 22px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+        }
     </style>
 </head>
 <body>
@@ -622,13 +638,20 @@
                                 <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
                             </div>
                         </div>
-                        <div class="calendar-grid">
-                            <!-- Example cells for visual verification -->
-                            <div class="calendar-cell cell-level-0"></div>
-                            <div class="calendar-cell cell-level-1"></div>
-                            <div class="calendar-cell cell-level-2"></div>
-                            <div class="calendar-cell cell-level-3"></div>
-                            <div class="calendar-cell cell-level-4"></div>
+                        <div class="calendar-body">
+                            <div class="day-labels">
+                                <span>Mon</span>
+                                <span>Wed</span>
+                                <span>Fri</span>
+                            </div>
+                            <div class="calendar-grid">
+                                <!-- Example cells for visual verification -->
+                                <div class="calendar-cell cell-level-0"></div>
+                                <div class="calendar-cell cell-level-1"></div>
+                                <div class="calendar-cell cell-level-2"></div>
+                                <div class="calendar-cell cell-level-3"></div>
+                                <div class="calendar-cell cell-level-4"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
