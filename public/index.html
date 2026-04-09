@@ -236,6 +236,25 @@
             background: var(--teal-50);
             color: var(--teal-700);
         }
+
+        .sort-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .sort-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .sort-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -386,6 +405,12 @@
                 <button id="reset-btn" class="action-button secondary">Try Another File</button>
             </div>
         </header>
+
+        <div class="sort-controls">
+            <span class="sort-label">Sort by:</span>
+            <div class="sort-group">
+            </div>
+        </div>
     </div>
 </body>
 </html>
