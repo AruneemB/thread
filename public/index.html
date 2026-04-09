@@ -255,6 +255,29 @@
             gap: 0.5rem;
             flex-wrap: wrap;
         }
+
+        input[type="radio"][name="sort"] {
+            display: none;
+        }
+
+        .sort-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        input[type="radio"][name="sort"]:checked + .sort-btn {
+            background: var(--teal-600);
+            color: #ffffff;
+            border-color: var(--teal-600);
+        }
     </style>
 </head>
 <body>
