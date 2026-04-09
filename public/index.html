@@ -464,6 +464,22 @@
             flex-wrap: wrap;
             margin-top: 1rem;
         }
+
+        .streak-pill {
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            font-weight: 500;
+        }
+
+        .streak-pill.active {
+            background: var(--teal-100);
+            color: var(--teal-900);
+            border-color: var(--teal-200);
+        }
     </style>
 </head>
 <body>
@@ -668,7 +684,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="streak-pills"></div>
+                <div class="streak-pills">
+                    <div class="streak-pill active">🔥 12 day streak</div>
+                </div>
             </div>
         </div>
     </div>
