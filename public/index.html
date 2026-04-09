@@ -420,6 +420,21 @@
         .cell-level-2 { background: #006d32; }
         .cell-level-3 { background: #26a641; }
         .cell-level-4 { background: #39d353; }
+
+        /* Labels */
+        .calendar-header-row {
+            display: flex;
+            margin-bottom: 4px;
+            padding-left: 30px; /* offset for day labels */
+        }
+
+        .month-labels {
+            display: flex;
+            font-size: 0.625rem;
+            color: var(--text-secondary);
+            justify-content: space-between;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -600,7 +615,23 @@
                         </div>
                     </div>
                 </div>
-                <div class="calendar-container">Calendar Placeholder</div>
+                <div class="calendar-container">
+                    <div class="calendar-wrapper">
+                        <div class="calendar-header-row">
+                            <div class="month-labels">
+                                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+                            </div>
+                        </div>
+                        <div class="calendar-grid">
+                            <!-- Example cells for visual verification -->
+                            <div class="calendar-cell cell-level-0"></div>
+                            <div class="calendar-cell cell-level-1"></div>
+                            <div class="calendar-cell cell-level-2"></div>
+                            <div class="calendar-cell cell-level-3"></div>
+                            <div class="calendar-cell cell-level-4"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
