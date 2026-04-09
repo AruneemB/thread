@@ -288,6 +288,19 @@
             background: var(--teal-700);
             color: #ffffff;
         }
+
+        .members-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .member-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            background: var(--bg);
+        }
     </style>
 </head>
 <body>
@@ -450,6 +463,11 @@
 
                 <input type="radio" name="sort" value="longestStreak" id="sort-longest">
                 <label for="sort-longest" class="sort-btn">Longest Streak</label>
+            </div>
+        </div>
+
+        <div class="members-container">
+            <div class="member-card">
             </div>
         </div>
     </div>
