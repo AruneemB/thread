@@ -301,6 +301,23 @@
             padding: 1.5rem;
             background: var(--bg);
         }
+
+        .member-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .member-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .member-stats {
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -468,6 +485,14 @@
 
         <div class="members-container">
             <div class="member-card">
+                <div class="member-header">
+                    <div class="member-info">
+                        <div class="member-avatar"></div>
+                        <div class="member-name"></div>
+                    </div>
+                    <div class="member-stats">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
