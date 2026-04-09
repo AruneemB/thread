@@ -338,8 +338,50 @@
             flex-shrink: 0;
         }
 
+        .member-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
         .member-stats {
             text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+
+        .member-total {
+            font-weight: 600;
+            font-size: 1.125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dropdown-indicator {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .streak-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .streak-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .streak-badge.active {
+            background: var(--teal-50);
+            color: var(--teal-700);
+            border-color: var(--teal-200);
         }
     </style>
 </head>
@@ -511,9 +553,14 @@
                 <div class="member-header">
                     <div class="member-info">
                         <div class="member-avatar" style="background-color: var(--avatar-blue)">AS</div>
-                        <div class="member-name"></div>
+                        <div class="member-name">Alice Smith</div>
                     </div>
                     <div class="member-stats">
+                        <div class="member-total">1,234 <span class="dropdown-indicator">▼</span></div>
+                        <div class="streak-badges">
+                            <span class="streak-badge active">🔥 12d</span>
+                            <span class="streak-badge">Max: 45d</span>
+                        </div>
                     </div>
                 </div>
             </div>
