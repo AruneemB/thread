@@ -25,6 +25,16 @@
             --teal-700: #0f766e;
             --teal-800: #115e59;
             --teal-900: #134e4a;
+
+            /* Avatar Colors */
+            --avatar-blue: #3b82f6;
+            --avatar-purple: #8b5cf6;
+            --avatar-pink: #ec4899;
+            --avatar-amber: #f59e0b;
+            --avatar-emerald: #10b981;
+            --avatar-cyan: #06b6d4;
+            --avatar-orange: #f97316;
+            --avatar-indigo: #6366f1;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -315,6 +325,19 @@
             gap: 1rem;
         }
 
+        .member-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 1.125rem;
+            flex-shrink: 0;
+        }
+
         .member-stats {
             text-align: right;
         }
@@ -487,7 +510,7 @@
             <div class="member-card">
                 <div class="member-header">
                     <div class="member-info">
-                        <div class="member-avatar"></div>
+                        <div class="member-avatar" style="background-color: var(--avatar-blue)">AS</div>
                         <div class="member-name"></div>
                     </div>
                     <div class="member-stats">
