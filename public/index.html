@@ -480,6 +480,20 @@
             color: var(--teal-900);
             border-color: var(--teal-200);
         }
+
+        .dashboard-footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+        }
+
+        .color-legend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -691,6 +705,10 @@
                 </div>
             </div>
         </div>
+
+        <footer class="dashboard-footer">
+            <div class="color-legend"></div>
+        </footer>
     </div>
 </body>
 </html>
