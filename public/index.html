@@ -810,6 +810,39 @@
                 }
             });
 
+            // State management
+            let currentDashboardData = null;
+
+            function showLandingPage() {
+                document.getElementById('dashboard').style.display = 'none';
+                document.querySelector('.page-header').style.display = 'block';
+                document.getElementById('upload-zone').style.display = 'block';
+                document.querySelector('.landing-footer').style.display = 'flex';
+                hideError();
+                fileInput.value = '';
+            }
+
+            function showDashboard(dashboardData) {
+                currentDashboardData = dashboardData;
+                document.querySelector('.page-header').style.display = 'none';
+                document.getElementById('upload-zone').style.display = 'none';
+                document.querySelector('.landing-footer').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+            }
+
+            // Navigation event listeners
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                showLandingPage();
+                currentDashboardData = null;
+            });
+
+            document.getElementById('dashboard-logo-btn').addEventListener('click', () => {
+                if (confirm('Return to upload page?')) {
+                    showLandingPage();
+                    currentDashboardData = null;
+                }
+            });
+
             function handleFile(file) {
                 hideError();
                 const reader = new FileReader();
@@ -823,9 +856,13 @@
                         }
                         
                         loadingSpinner.style.display = 'flex';
-                        // Simulated processing since rendering is in a later requirement set
+                        
+                        // Process data
+                        const processedData = processExport(data);
+                        
                         setTimeout(() => {
                             loadingSpinner.style.display = 'none';
+                            showDashboard(processedData);
                         }, 500);
 
                     } catch (error) {
