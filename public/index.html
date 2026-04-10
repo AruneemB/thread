@@ -767,6 +767,20 @@
             });
 
             function handleFile(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        validateTelegramExport(data);
+                    } catch (error) {
+                        console.error('Error parsing JSON:', error);
+                        // Validation function will handle general errors if needed, or we can show it later
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            function validateTelegramExport(data) {
                 // To be implemented
             }
         });
