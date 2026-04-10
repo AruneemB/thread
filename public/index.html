@@ -1047,6 +1047,25 @@
                 return avatarColors[index];
             }
 
+            function renderMonthLabels(cells) {
+                const container = document.createElement('div');
+                container.className = 'month-labels';
+                
+                let lastMonth = -1;
+                for (let i = 0; i < cells.length; i += 7) {
+                    const date = new Date(cells[i].date + 'T00:00:00Z');
+                    const month = date.getUTCMonth();
+                    if (month !== lastMonth) {
+                        const span = document.createElement('span');
+                        span.textContent = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+                        container.appendChild(span);
+                        lastMonth = month;
+                    }
+                }
+                
+                return container;
+            }
+
             function renderCalendar(cells) {
                 const grid = document.createElement('div');
                 grid.className = 'calendar-grid';
