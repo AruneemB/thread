@@ -1281,9 +1281,32 @@
             }
 
             function generateDemoData() {
-                // Returns: DashboardData with synthetic members
+                const demoUsers = [
+                    { name: "Alice Chen", id: "demo0" },
+                    { name: "Bob Smith", id: "demo1" },
+                    { name: "Carol Davis", id: "demo2" },
+                    { name: "David Wilson", id: "demo3" },
+                    { name: "Elena Rodriguez", id: "demo4" },
+                    { name: "Frank Miller", id: "demo5" },
+                    { name: "Grace Lee", id: "demo6" }
+                ];
+
+                const members = demoUsers.map((user) => {
+                    return {
+                        ...user,
+                        initials: initialsFrom(user.name),
+                        color: avatarColorFromId(user.id),
+                        total: 0,
+                        currentStreak: 0,
+                        longestStreak: 0,
+                        mostRecent: "",
+                        cells: [],
+                        dailyCounts: {}
+                    };
+                });
+
                 return {
-                    members: [],
+                    members,
                     name: "Demo Group Stats",
                     dateRange: { start: "", end: "" }
                 };
