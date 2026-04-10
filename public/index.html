@@ -866,6 +866,34 @@
 
                 return { valid: true, error: '' };
             }
+
+            function subtractOneDay(dateStr) {
+                const date = new Date(dateStr + 'T00:00:00Z');
+                date.setUTCDate(date.getUTCDate() - 1);
+                return date.toISOString().split('T')[0];
+            }
+
+            function addOneDay(dateStr) {
+                const date = new Date(dateStr + 'T00:00:00Z');
+                date.setUTCDate(date.getUTCDate() + 1);
+                return date.toISOString().split('T')[0];
+            }
+
+            function getTodayISOString() {
+                return new Date().toISOString().split('T')[0];
+            }
+
+            function computeStreaks(dailyCounts) {
+                if (!dailyCounts || Object.keys(dailyCounts).length === 0) {
+                    return { current: 0, longest: 0 };
+                }
+
+                const todayStr = getTodayISOString();
+                let current = 0;
+                let longest = 0;
+
+                return { current, longest };
+            }
         });
     </script>
 </body>
