@@ -903,7 +903,22 @@
                     cursor = subtractOneDay(cursor);
                 }
 
+                // Longest streak
+                const sortedDates = Object.keys(dailyCounts)
+                    .filter(d => dailyCounts[d] > 0 && d <= todayStr)
+                    .sort();
+
                 let longest = 0;
+                let run = 0;
+                for (let i = 0; i < sortedDates.length; i++) {
+                    if (i === 0 || sortedDates[i] === addOneDay(sortedDates[i - 1])) {
+                        run++;
+                    } else {
+                        run = 1;
+                    }
+                    if (run > longest) longest = run;
+                }
+
                 return { current, longest };
             }
         });
