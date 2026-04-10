@@ -845,7 +845,13 @@
 
             document.querySelectorAll('input[name="sort"]').forEach(radio => {
                 radio.addEventListener('change', (e) => {
-                    // Sorting and re-rendering will be implemented in sub-task 3
+                    if (currentDashboardData) {
+                        const sortedMembers = sortMembers(currentDashboardData.members, e.target.value);
+                        renderDashboard({
+                            ...currentDashboardData,
+                            members: sortedMembers
+                        });
+                    }
                 });
             });
 
