@@ -125,6 +125,28 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
+        .upload-zone.error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .upload-zone.error {
+                background: #450a0a;
+            }
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
         .demo-button {
             display: inline-block;
             background: transparent;
@@ -551,15 +573,7 @@
                 <rect x="37.5" y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="50"   y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
 
-                <!-- Fri -->
-                <rect x="0"    y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
-                <rect x="12.5" y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
-                <rect x="25"   y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
-                <rect x="37.5" y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
-                <rect x="50"   y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
-
-                <!-- Sat -->
-                <rect x="0"    y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <ht="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="12.5" y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="25"   y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="37.5" y="62.5" width="10" height="10" rx="2.5" fill="#0f6e56"/>
@@ -585,6 +599,7 @@
         <p>Drop JSON here or click to browse files</p>
         <input type="file" accept=".json" id="file-input" style="display: none;">
     </div>
+    <div id="error-msg" class="error-message" style="display: none;"></div>
 
     <footer class="landing-footer">
         <button id="demo-btn" class="demo-button">Try with sample data</button>
@@ -791,6 +806,32 @@
                 const hasValidMessage = data.messages.some(msg => 
                     msg.type && msg.from && msg.from_id && msg.date
                 );
+
+                if (!hasValidMessage) {
+                    return { valid: false, error: 'Invalid file format. Messages missing required fields.' };
+                }
+
+                return { valid: true, error: '' };
+            }
+        });
+    </script>
+</body>
+</html>         }
+                
+                const hasValidMessage = data.messages.some(msg => 
+                    msg.type && msg.from && msg.from_id && msg.date
+                );
+
+                if (!hasValidMessage) {
+                    return { valid: false, error: 'Invalid file format. Messages missing required fields.' };
+                }
+
+                return { valid: true, error: '' };
+            }
+        });
+    </script>
+</body>
+</html>              );
 
                 if (!hasValidMessage) {
                     return { valid: false, error: 'Invalid file format. Messages missing required fields.' };
