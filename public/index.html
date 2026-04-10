@@ -921,10 +921,16 @@
                 cursor = startDate;
                 for (let i = 0; i < 371; i++) {
                     const count = dailyCounts[cursor] || 0;
+                    let level = 0;
+                    if (count >= 20) level = 4;
+                    else if (count >= 10) level = 3;
+                    else if (count >= 5) level = 2;
+                    else if (count >= 1) level = 1;
+
                     cells.push({
                         date: cursor,
                         count: count,
-                        level: 0,
+                        level: level,
                         isFuture: false
                     });
                     cursor = addOneDay(cursor);
