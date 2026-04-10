@@ -883,6 +883,32 @@
                 return new Date().toISOString().split('T')[0];
             }
 
+            function getDayOfWeek(dateStr) {
+                const date = new Date(dateStr + 'T00:00:00Z');
+                let day = date.getUTCDay(); // 0 (Sun) to 6 (Sat)
+                // Adjust to Monday = 0, Sunday = 6
+                return (day + 6) % 7;
+            }
+
+            function formatDate(dateStr) {
+                const date = new Date(dateStr + 'T00:00:00Z');
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    timeZone: 'UTC'
+                });
+            }
+
+            function buildCells(dailyCounts) {
+                const cells = [];
+                // TODO: Generate 53-week date range
+                // TODO: Assign message counts
+                // TODO: Compute color levels
+                // TODO: Mark future dates
+                return cells;
+            }
+
             function computeStreaks(dailyCounts) {
                 if (!dailyCounts || Object.keys(dailyCounts).length === 0) {
                     return { current: 0, longest: 0 };
