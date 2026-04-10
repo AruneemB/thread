@@ -889,9 +889,21 @@
                 }
 
                 const todayStr = getTodayISOString();
+                
+                // Current streak
                 let current = 0;
-                let longest = 0;
+                let cursor = todayStr;
+                // If today has no messages, check yesterday
+                if (!dailyCounts[cursor] || dailyCounts[cursor] === 0) {
+                    cursor = subtractOneDay(cursor);
+                }
 
+                while (dailyCounts[cursor] && dailyCounts[cursor] > 0) {
+                    current++;
+                    cursor = subtractOneDay(cursor);
+                }
+
+                let longest = 0;
                 return { current, longest };
             }
         });
