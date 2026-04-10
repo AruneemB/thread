@@ -1047,6 +1047,52 @@
                 return avatarColors[index];
             }
 
+            function renderMemberCard(member) {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                
+                const totalFormatted = new Intl.NumberFormat().format(member.total);
+                const activeDays = Object.keys(member.dailyCounts).length;
+                
+                card.innerHTML = `
+                    <div class="member-header">
+                        <div class="member-info">
+                            <div class="member-avatar" style="background-color: ${member.color}">${member.initials}</div>
+                            <div class="member-name">${member.name || 'Unknown User'}</div>
+                        </div>
+                        <div class="member-stats">
+                            <div class="member-total">${totalFormatted} <span class="dropdown-indicator">▼</span></div>
+                            <div class="streak-badges">
+                                <span class="streak-badge ${member.currentStreak > 0 ? 'active' : ''}">🔥 ${member.currentStreak}d</span>
+                                <span class="streak-badge">Max: ${member.longestStreak}d</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="calendar-container">
+                        <div class="calendar-wrapper">
+                            <div class="calendar-header-row" id="month-labels-${member.id}">
+                            </div>
+                            <div class="calendar-body">
+                                <div class="day-labels">
+                                    <span>Mon</span>
+                                    <span>Wed</span>
+                                    <span>Fri</span>
+                                </div>
+                                <div class="calendar-grid" id="calendar-grid-${member.id}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="streak-pills">
+                        <div class="streak-pill ${member.currentStreak > 0 ? 'active' : ''}">🔥 ${member.currentStreak} day streak</div>
+                        <div class="streak-pill">Best: ${member.longestStreak} days</div>
+                        <div class="streak-pill">${activeDays} active days</div>
+                    </div>
+                `;
+                
+                return card;
+            }
+
             function processExport(jsonData) {
                 if (!jsonData || !Array.isArray(jsonData.messages)) {
                     throw new Error('Not a Telegram export file');
