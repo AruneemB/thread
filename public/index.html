@@ -1008,6 +1008,24 @@
                     user.dailyCounts[msg.date] = (user.dailyCounts[msg.date] || 0) + 1;
                 });
 
+                const members = [];
+                userMap.forEach((user) => {
+                    const streaks = computeStreaks(user.dailyCounts);
+                    const cells = buildCells(user.dailyCounts);
+                    const total = Object.values(user.dailyCounts).reduce((a, b) => a + b, 0);
+                    const dates = Object.keys(user.dailyCounts).sort();
+                    const mostRecent = dates[dates.length - 1];
+                    
+                    members.push({
+                        ...user,
+                        total,
+                        currentStreak: streaks.current,
+                        longestStreak: streaks.longest,
+                        mostRecent,
+                        cells
+                    });
+                });
+
                 return {
                     members: [],
                     dateRange: { start: '', end: '' }
