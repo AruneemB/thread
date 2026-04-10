@@ -147,6 +147,33 @@
             font-weight: 500;
         }
 
+        .spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .spinner::before {
+            content: "";
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--teal-500);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         .demo-button {
             display: inline-block;
             background: transparent;
@@ -749,6 +776,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             const uploadZone = document.getElementById('upload-zone');
             const fileInput = document.getElementById('file-input');
+            const errorMsg = document.getElementById('error-msg');
+            const loadingSpinner = document.getElementById('loading-spinner');
 
             // Click to browse
             uploadZone.addEventListener('click', () => {
@@ -782,17 +811,41 @@
             });
 
             function handleFile(file) {
+                hideError();
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
                         const data = JSON.parse(e.target.result);
-                        validateTelegramExport(data);
+                        const validation = validateTelegramExport(data);
+                        if (!validation.valid) {
+                            showError(validation.error);
+                            return;
+                        }
+                        
+                        loadingSpinner.style.display = 'flex';
+                        // Simulated processing since rendering is in a later requirement set
+                        setTimeout(() => {
+                            loadingSpinner.style.display = 'none';
+                        }, 500);
+
                     } catch (error) {
                         console.error('Error parsing JSON:', error);
-                        // Validation function will handle general errors if needed, or we can show it later
+                        showError('Invalid JSON file format.');
                     }
                 };
                 reader.readAsText(file);
+            }
+
+            function showError(message) {
+                if (loadingSpinner) loadingSpinner.style.display = 'none';
+                errorMsg.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> ' + message;
+                errorMsg.style.display = 'flex';
+                uploadZone.classList.add('error');
+            }
+
+            function hideError() {
+                errorMsg.style.display = 'none';
+                uploadZone.classList.remove('error');
             }
 
             function validateTelegramExport(data) {
@@ -806,32 +859,6 @@
                 const hasValidMessage = data.messages.some(msg => 
                     msg.type && msg.from && msg.from_id && msg.date
                 );
-
-                if (!hasValidMessage) {
-                    return { valid: false, error: 'Invalid file format. Messages missing required fields.' };
-                }
-
-                return { valid: true, error: '' };
-            }
-        });
-    </script>
-</body>
-</html>         }
-                
-                const hasValidMessage = data.messages.some(msg => 
-                    msg.type && msg.from && msg.from_id && msg.date
-                );
-
-                if (!hasValidMessage) {
-                    return { valid: false, error: 'Invalid file format. Messages missing required fields.' };
-                }
-
-                return { valid: true, error: '' };
-            }
-        });
-    </script>
-</body>
-</html>              );
 
                 if (!hasValidMessage) {
                     return { valid: false, error: 'Invalid file format. Messages missing required fields.' };
