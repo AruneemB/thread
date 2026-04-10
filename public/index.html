@@ -902,10 +902,33 @@
 
             function buildCells(dailyCounts) {
                 const cells = [];
-                // TODO: Generate 53-week date range
-                // TODO: Assign message counts
-                // TODO: Compute color levels
-                // TODO: Mark future dates
+                const today = getTodayISOString();
+                
+                // Find current Sunday
+                let currentSunday = today;
+                while (getDayOfWeek(currentSunday) !== 6) {
+                    currentSunday = addOneDay(currentSunday);
+                }
+                
+                // Start date is 370 days before current Sunday (total 371 days)
+                let cursor = currentSunday;
+                for (let i = 0; i < 370; i++) {
+                    cursor = subtractOneDay(cursor);
+                }
+                const startDate = cursor;
+                
+                // Generate 371 dates
+                cursor = startDate;
+                for (let i = 0; i < 371; i++) {
+                    cells.push({
+                        date: cursor,
+                        count: 0,
+                        level: 0,
+                        isFuture: false
+                    });
+                    cursor = addOneDay(cursor);
+                }
+                
                 return cells;
             }
 
