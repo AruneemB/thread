@@ -1047,6 +1047,32 @@
                 return avatarColors[index];
             }
 
+            function renderCalendar(cells) {
+                const grid = document.createElement('div');
+                grid.className = 'calendar-grid';
+                
+                cells.forEach(cell => {
+                    const cellEl = document.createElement('div');
+                    cellEl.className = `calendar-cell cell-level-${cell.level}`;
+                    if (cell.isFuture) {
+                        cellEl.style.background = 'transparent';
+                    }
+                    cellEl.setAttribute('data-date', cell.date);
+                    cellEl.setAttribute('data-count', cell.count);
+                    
+                    // Native tooltip
+                    const dateFormatted = formatDate(cell.date);
+                    cellEl.title = `${cell.count} messages on ${dateFormatted}`;
+                    if (cell.count === 0) {
+                        cellEl.title = `No messages on ${dateFormatted}`;
+                    }
+                    
+                    grid.appendChild(cellEl);
+                });
+                
+                return grid;
+            }
+
             function renderMemberCard(member) {
                 const card = document.createElement('div');
                 card.className = 'member-card';
