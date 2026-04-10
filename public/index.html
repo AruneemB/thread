@@ -1308,23 +1308,35 @@
                         cursor = subtractOneDay(cursor);
                     }
 
+                    const streaks = computeStreaks(dailyCounts);
+                    const cells = buildCells(dailyCounts);
+                    const total = Object.values(dailyCounts).reduce((a, b) => a + b, 0);
+                    const dates = Object.keys(dailyCounts).sort();
+                    const mostRecent = dates[dates.length - 1];
+
                     return {
                         ...user,
                         initials: initialsFrom(user.name),
                         color: avatarColorFromId(user.id),
-                        total: 0,
-                        currentStreak: 0,
-                        longestStreak: 0,
-                        mostRecent: "",
-                        cells: [],
+                        total,
+                        currentStreak: streaks.current,
+                        longestStreak: streaks.longest,
+                        mostRecent,
+                        cells,
                         dailyCounts
                     };
                 });
 
+                // Sort by total messages descending
+                members.sort((a, b) => b.total - a.total);
+
                 return {
                     members,
                     name: "Demo Group Stats",
-                    dateRange: { start: "", end: "" }
+                    dateRange: {
+                        start: members[0].cells[0].date,
+                        end: members[0].cells[members[0].cells.length - 1].date
+                    }
                 };
             }
         });
