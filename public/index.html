@@ -993,6 +993,21 @@
                     throw new Error('No valid messages found in export.');
                 }
                 
+                const userMap = new Map();
+                
+                validMessages.forEach(msg => {
+                    if (!userMap.has(msg.from_id)) {
+                        userMap.set(msg.from_id, {
+                            name: msg.from,
+                            id: msg.from_id,
+                            dailyCounts: {}
+                        });
+                    }
+                    
+                    const user = userMap.get(msg.from_id);
+                    user.dailyCounts[msg.date] = (user.dailyCounts[msg.date] || 0) + 1;
+                });
+
                 return {
                     members: [],
                     dateRange: { start: '', end: '' }
