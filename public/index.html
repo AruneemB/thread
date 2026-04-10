@@ -920,9 +920,10 @@
                 // Generate 371 dates
                 cursor = startDate;
                 for (let i = 0; i < 371; i++) {
+                    const count = dailyCounts[cursor] || 0;
                     cells.push({
                         date: cursor,
-                        count: 0,
+                        count: count,
                         level: 0,
                         isFuture: false
                     });
