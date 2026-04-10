@@ -977,7 +977,22 @@
                 return { current, longest };
             }
             function processExport(jsonData) {
-                // To be implemented in subsequent commits
+                if (!jsonData || !Array.isArray(jsonData.messages)) {
+                    throw new Error('Not a Telegram export file.');
+                }
+
+                const validMessages = jsonData.messages.filter(msg => 
+                    msg.type === 'message' && msg.from_id && msg.date
+                ).map(msg => ({
+                    from: msg.from,
+                    from_id: msg.from_id,
+                    date: msg.date.split('T')[0]
+                }));
+
+                if (validMessages.length === 0) {
+                    throw new Error('No valid messages found in export.');
+                }
+                
                 return {
                     members: [],
                     dateRange: { start: '', end: '' }
