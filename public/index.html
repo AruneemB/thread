@@ -976,6 +976,40 @@
 
                 return { current, longest };
             }
+
+            function initialsFrom(name) {
+                if (!name) return '??';
+                const parts = name.trim().split(/\s+/);
+                if (parts.length === 0) return '??';
+                if (parts.length === 1) {
+                    return parts[0].substring(0, 2).toUpperCase().padEnd(2, parts[0][0] || '?');
+                }
+                const first = parts[0][0] || '';
+                const last = parts[parts.length - 1][0] || '';
+                return (first + last).toUpperCase();
+            }
+
+            const avatarColors = [
+                '#3b82f6', // blue
+                '#8b5cf6', // purple
+                '#ec4899', // pink
+                '#f59e0b', // amber
+                '#10b981', // emerald
+                '#06b6d4', // cyan
+                '#f97316', // orange
+                '#6366f1'  // indigo
+            ];
+
+            function avatarColorFromId(userId) {
+                const idStr = String(userId);
+                let hash = 0;
+                for (let i = 0; i < idStr.length; i++) {
+                    hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const index = Math.abs(hash) % avatarColors.length;
+                return avatarColors[index];
+            }
+
             function processExport(jsonData) {
                 if (!jsonData || !Array.isArray(jsonData.messages)) {
                     throw new Error('Not a Telegram export file.');
@@ -1018,6 +1052,8 @@
                     
                     members.push({
                         ...user,
+                        initials: initialsFrom(user.name),
+                        color: avatarColorFromId(user.id),
                         total,
                         currentStreak: streaks.current,
                         longestStreak: streaks.longest,
@@ -1026,9 +1062,19 @@
                     });
                 });
 
+                // Sort by total messages descending
+                members.sort((a, b) => b.total - a.total);
+
+                // Date range from cells (same for all members as buildCells uses relative range)
+                const firstMemberCells = members[0].cells;
+                const dateRange = {
+                    start: firstMemberCells[0].date,
+                    end: firstMemberCells[firstMemberCells.length - 1].date
+                };
+
                 return {
-                    members: [],
-                    dateRange: { start: '', end: '' }
+                    members,
+                    dateRange
                 };
             }
         });
