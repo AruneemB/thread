@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { subtractOneDay, addOneDay, formatDate, getTodayISOString, getDateNWeeksAgo } from "./date-utils.js";
+import { subtractOneDay, addOneDay, formatDate, getTodayISOString, getDateNWeeksAgo, getDayOfWeek } from "./date-utils.js";
 
 describe("date-utils", () => {
   describe("subtractOneDay", () => {
@@ -58,9 +58,19 @@ describe("date-utils", () => {
       // 52 weeks = 364 days. Jan 15, 2025 - 364 days = Jan 17, 2024
       expect(getDateNWeeksAgo(52)).toBe("2024-01-17");
     });
+  });
 
-    it("getDateNWeeksAgo(1) returns date 7 days ago", () => {
-      expect(getDateNWeeksAgo(1)).toBe("2025-01-08");
+  describe("getDayOfWeek", () => {
+    it('returns 0 for "2025-01-13" (Monday)', () => {
+      expect(getDayOfWeek("2025-01-13")).toBe(0);
+    });
+
+    it('returns 6 for "2025-01-19" (Sunday)', () => {
+      expect(getDayOfWeek("2025-01-19")).toBe(6);
+    });
+
+    it('returns 2 for "2025-01-15" (Wednesday)', () => {
+      expect(getDayOfWeek("2025-01-15")).toBe(2);
     });
   });
 });

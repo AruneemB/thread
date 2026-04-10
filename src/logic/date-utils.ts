@@ -52,3 +52,14 @@ export function getDateNWeeksAgo(weeks: number): string {
   d.setUTCDate(d.getUTCDate() - weeks * 7);
   return d.toISOString().split("T")[0];
 }
+
+/**
+ * Returns the day of the week for a date string (0=Mon, 6=Sun).
+ * @param dateStr Date string in "YYYY-MM-DD" format.
+ * @returns Day of week (0-6).
+ */
+export function getDayOfWeek(dateStr: string): number {
+  const date = new Date(dateStr + "T00:00:00Z");
+  const day = date.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  return (day + 6) % 7; // 0=Mon, 1=Tue, ..., 5=Sat, 6=Sun
+}
