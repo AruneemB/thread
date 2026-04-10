@@ -1012,7 +1012,7 @@
 
             function processExport(jsonData) {
                 if (!jsonData || !Array.isArray(jsonData.messages)) {
-                    throw new Error('Not a Telegram export file.');
+                    throw new Error('Not a Telegram export file');
                 }
 
                 const validMessages = jsonData.messages.filter(msg => 
@@ -1024,7 +1024,7 @@
                 }));
 
                 if (validMessages.length === 0) {
-                    throw new Error('No valid messages found in export.');
+                    throw new Error('No messages found in export');
                 }
                 
                 const userMap = new Map();
@@ -1041,6 +1041,10 @@
                     const user = userMap.get(msg.from_id);
                     user.dailyCounts[msg.date] = (user.dailyCounts[msg.date] || 0) + 1;
                 });
+                
+                if (userMap.size === 0) {
+                    throw new Error('Invalid file format');
+                }
 
                 const members = [];
                 userMap.forEach((user) => {
