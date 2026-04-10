@@ -739,6 +739,36 @@
             uploadZone.addEventListener('click', () => {
                 fileInput.click();
             });
+
+            // Drag and drop
+            uploadZone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (event) => {
+                event.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const file = event.dataTransfer.files[0];
+                if (file) {
+                    handleFile(file);
+                }
+            });
+
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    handleFile(file);
+                }
+            });
+
+            function handleFile(file) {
+                // To be implemented
+            }
         });
     </script>
 </body>
