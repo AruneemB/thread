@@ -1138,6 +1138,30 @@
                 return card;
             }
 
+            function renderDashboard(dashboardData) {
+                const container = document.querySelector('.members-container');
+                container.innerHTML = '';
+                
+                dashboardData.members.forEach(member => {
+                    const card = renderMemberCard(member);
+                    container.appendChild(card);
+                    
+                    const grid = renderCalendar(member.cells);
+                    const gridSlot = card.querySelector(`#calendar-grid-${member.id}`);
+                    if (gridSlot) gridSlot.appendChild(grid);
+                    
+                    const monthLabels = renderMonthLabels(member.cells);
+                    const labelsSlot = card.querySelector(`#month-labels-${member.id}`);
+                    if (labelsSlot) labelsSlot.appendChild(monthLabels);
+                });
+                
+                if (dashboardData.name) {
+                    document.querySelector('.dashboard-title').textContent = dashboardData.name;
+                }
+                
+                showDashboard(dashboardData);
+            }
+
             function processExport(jsonData) {
                 if (!jsonData || !Array.isArray(jsonData.messages)) {
                     throw new Error('Not a Telegram export file');
@@ -1206,7 +1230,8 @@
 
                 return {
                     members,
-                    dateRange
+                    dateRange,
+                    name: jsonData.name || 'Chat Stats'
                 };
             }
         });
