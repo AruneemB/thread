@@ -781,7 +781,22 @@
             }
 
             function validateTelegramExport(data) {
-                // To be implemented
+                if (!data || !Array.isArray(data.messages)) {
+                    return { valid: false, error: 'Not a Telegram export file. Missing messages array.' };
+                }
+                if (data.messages.length === 0) {
+                    return { valid: false, error: 'No messages found in export.' };
+                }
+                
+                const hasValidMessage = data.messages.some(msg => 
+                    msg.type && msg.from && msg.from_id && msg.date
+                );
+
+                if (!hasValidMessage) {
+                    return { valid: false, error: 'Invalid file format. Messages missing required fields.' };
+                }
+
+                return { valid: true, error: '' };
             }
         });
     </script>
