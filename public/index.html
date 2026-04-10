@@ -890,14 +890,10 @@
 
                 const todayStr = getTodayISOString();
                 
-                // Current streak
+                // Current streak: must include today to be 'current' per spec
                 let current = 0;
                 let cursor = todayStr;
-                // If today has no messages, check yesterday
-                if (!dailyCounts[cursor] || dailyCounts[cursor] === 0) {
-                    cursor = subtractOneDay(cursor);
-                }
-
+                
                 while (dailyCounts[cursor] && dailyCounts[cursor] > 0) {
                     current++;
                     cursor = subtractOneDay(cursor);
