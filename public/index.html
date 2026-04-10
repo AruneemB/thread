@@ -1234,6 +1234,18 @@
                     name: jsonData.name || 'Chat Stats'
                 };
             }
+
+            function sortMembers(members, sortBy) {
+                return [...members].sort((a, b) => {
+                    if (sortBy === 'currentStreak') {
+                        return b.currentStreak - a.currentStreak;
+                    } else if (sortBy === 'longestStreak') {
+                        return b.longestStreak - a.longestStreak;
+                    } else {
+                        return b.total - a.total;
+                    }
+                });
+            }
         });
     </script>
 </body>
