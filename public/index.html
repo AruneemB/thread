@@ -843,6 +843,12 @@
                 }
             });
 
+            document.querySelectorAll('input[name="sort"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    // Sorting and re-rendering will be implemented in sub-task 3
+                });
+            });
+
             function handleFile(file) {
                 hideError();
                 const reader = new FileReader();
