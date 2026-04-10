@@ -600,7 +600,15 @@
                 <rect x="37.5" y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="50"   y="37.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
 
-                <ht="10" rx="2.5" fill="#e1f5ee"/>
+                <!-- Fri -->
+                <rect x="0"    y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="12.5" y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+                <rect x="25"   y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+                <rect x="37.5" y="50"   width="10" height="10" rx="2.5" fill="#1d9e75"/>
+                <rect x="50"   y="50"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
+
+                <!-- Sat -->
+                <rect x="0"    y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="12.5" y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="25"   y="62.5" width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="37.5" y="62.5" width="10" height="10" rx="2.5" fill="#0f6e56"/>
@@ -1249,13 +1257,26 @@
 
             function sortMembers(members, sortBy) {
                 return [...members].sort((a, b) => {
+                    let diff = 0;
                     if (sortBy === 'currentStreak') {
-                        return b.currentStreak - a.currentStreak;
+                        diff = b.currentStreak - a.currentStreak;
                     } else if (sortBy === 'longestStreak') {
-                        return b.longestStreak - a.longestStreak;
+                        diff = b.longestStreak - a.longestStreak;
                     } else {
-                        return b.total - a.total;
+                        diff = b.total - a.total;
                     }
+
+                    // Tie-breaker: sort by total if streak is equal
+                    if (diff === 0 && sortBy !== 'total') {
+                        diff = b.total - a.total;
+                    }
+
+                    // Final tie-breaker: sort by name
+                    if (diff === 0) {
+                        return (a.name || "").localeCompare(b.name || "");
+                    }
+
+                    return diff;
                 });
             }
         });
