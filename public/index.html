@@ -1291,7 +1291,23 @@
                     { name: "Grace Lee", id: "demo6" }
                 ];
 
-                const members = demoUsers.map((user) => {
+                const today = getTodayISOString();
+                const members = demoUsers.map((user, userIdx) => {
+                    const dailyCounts = {};
+                    let cursor = today;
+
+                    // Generate 365 days of data
+                    for (let d = 0; d < 365; d++) {
+                        // Seeded randomness for deterministic results
+                        const seed = Math.abs(Math.sin(userIdx * 1000 + d)) * 100;
+                        const hasActivity = (seed % 1) < 0.7; // 70% chance of activity
+
+                        if (hasActivity) {
+                            dailyCounts[cursor] = Math.floor((seed % 1) * 35) + 1; // 1-35 messages
+                        }
+                        cursor = subtractOneDay(cursor);
+                    }
+
                     return {
                         ...user,
                         initials: initialsFrom(user.name),
@@ -1301,7 +1317,7 @@
                         longestStreak: 0,
                         mostRecent: "",
                         cells: [],
-                        dailyCounts: {}
+                        dailyCounts
                     };
                 });
 
