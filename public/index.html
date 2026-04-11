@@ -1367,6 +1367,16 @@
                     }
                 };
             }
+
+            async function downloadPNG() {
+                const dashboard = document.getElementById('dashboard');
+                const canvas = await html2canvas(dashboard, {
+                    backgroundColor: getComputedStyle(document.body).backgroundColor,
+                    scale: 2,
+                    ignoreElements: (el) => el.classList.contains('no-export')
+                });
+                return canvas;
+            }
         });
     </script>
 </body>
