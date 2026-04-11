@@ -1,3 +1,62 @@
+<!--
+  =============================================================================
+  Thread Landing Page — public/index.html
+  =============================================================================
+
+  PURPOSE
+  -------
+  A fully self-contained, zero-server-dependency dashboard that lets anyone
+  visualise Telegram group activity by uploading a Telegram Desktop JSON export.
+  All processing happens in the browser; no data ever leaves the device.
+
+  FILE STRUCTURE
+  --------------
+  This single HTML file contains three major sections:
+
+    1. <head>   — Meta tags, inline CSS (theme variables, layout, components)
+    2. <body>   — Two mutually exclusive UI states (see State Machine below)
+                  plus the inlined html2canvas library and custom JavaScript
+    3. <script> — All application logic (parsing, rendering, event wiring)
+
+  INLINED DEPENDENCY
+  ------------------
+  html2canvas (v1.x) is inlined in the <script> block to keep the page fully
+  self-contained with zero external network requests. It is used only for the
+  "Download PNG" feature.
+
+  STATE MACHINE
+  -------------
+  The page operates as a two-state machine:
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │  State 1 — Landing / Upload                                 │
+    │  Elements: .page-header, #upload-zone, .landing-footer      │
+    │  Entered via: showLandingPage()                             │
+    │  Transitions to State 2 when a valid file is processed or   │
+    │  the "Try Demo" button is clicked.                          │
+    └──────────────────────────┬──────────────────────────────────┘
+                               │ processExport() or generateDemoData()
+                               │        ↓ renderDashboard()
+    ┌──────────────────────────▼──────────────────────────────────┐
+    │  State 2 — Dashboard                                        │
+    │  Elements: #dashboard (header + sort controls + member cards)│
+    │  Entered via: showDashboard()                               │
+    │  Transitions back to State 1 via the logo button or the     │
+    │  "← Back" button, which call showLandingPage().             │
+    └─────────────────────────────────────────────────────────────┘
+
+  DATA FLOW
+  ---------
+  Upload (File object)
+    → FileReader.readAsText()           — async, yields to browser paint
+    → JSON.parse()                      — parse raw text to object
+    → validateTelegramExport()          — structural validation
+    → processExport()                   — group by user, compute streaks/cells
+    → renderDashboard()                 — build DOM, inject calendar grids
+    → showDashboard()                   — swap UI state to State 2
+
+  =============================================================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
