@@ -862,18 +862,30 @@
                 }
             });
 
-            // Drag and drop
-            uploadZone.addEventListener('dragover', (event) => {
+            // Drag and drop — use a counter so entering a child element does not
+            // trigger a spurious dragleave on the zone (consistent across browsers).
+            let dragCounter = 0;
+
+            uploadZone.addEventListener('dragenter', (event) => {
                 event.preventDefault();
+                dragCounter++;
                 uploadZone.classList.add('dragover');
             });
 
+            uploadZone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+            });
+
             uploadZone.addEventListener('dragleave', () => {
-                uploadZone.classList.remove('dragover');
+                dragCounter--;
+                if (dragCounter === 0) {
+                    uploadZone.classList.remove('dragover');
+                }
             });
 
             uploadZone.addEventListener('drop', (event) => {
                 event.preventDefault();
+                dragCounter = 0;
                 uploadZone.classList.remove('dragover');
                 const file = event.dataTransfer.files[0];
                 if (file) {
