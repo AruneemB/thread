@@ -72,6 +72,7 @@
         button, a, .interactive {
             transition: all 0.2s ease;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         .fade-in {
@@ -670,7 +671,7 @@
         <h1>Visualize Telegram Group Activity</h1>
         <p class="subtitle">GitHub-style contribution heatmaps</p>
     </header>
-    <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop JSON file here or click to browse">
+    <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop JSON file here or tap to browse">
         <p>Drop JSON here or click to browse files</p>
         <input type="file" accept=".json" id="file-input" style="display: none; pointer-events: none;">
     </div>
