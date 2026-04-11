@@ -1258,19 +1258,25 @@
             function renderDashboard(dashboardData) {
                 const container = document.querySelector('.members-container');
                 container.innerHTML = '';
-                
+
+                // Use a DocumentFragment to batch DOM insertions and minimize reflows
+                const fragment = document.createDocumentFragment();
+
                 dashboardData.members.forEach(member => {
                     const card = renderMemberCard(member);
-                    container.appendChild(card);
-                    
+
                     const grid = renderCalendar(member.cells);
                     const gridSlot = card.querySelector(`#calendar-grid-${member.id}`);
                     if (gridSlot) gridSlot.appendChild(grid);
-                    
+
                     const monthLabels = renderMonthLabels(member.cells);
                     const labelsSlot = card.querySelector(`#month-labels-${member.id}`);
                     if (labelsSlot) labelsSlot.appendChild(monthLabels);
+
+                    fragment.appendChild(card);
                 });
+
+                container.appendChild(fragment);
                 
                 if (dashboardData.name) {
                     document.querySelector('.dashboard-title').textContent = dashboardData.name;
