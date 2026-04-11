@@ -1527,11 +1527,22 @@
 
             async function downloadPNG() {
                 const dashboard = document.getElementById('dashboard');
+
+                // allowTaint: false — keep the canvas origin-clean so toBlob() works
+                //   cross-origin images that would taint the canvas are skipped.
+                // useCORS: true — attempt CORS for any external images before falling
+                //   back to omitting them; the favicon is a same-origin SVG so CORS
+                //   is a no-op in practice.
+                // For very tall dashboards (many members) html2canvas captures the
+                // full scrollHeight; this can take several seconds and is expected.
                 const canvas = await html2canvas(dashboard, {
                     backgroundColor: getComputedStyle(document.body).backgroundColor,
                     scale: 2,
+                    allowTaint: false,
+                    useCORS: true,
                     ignoreElements: (el) => el.classList.contains('no-export')
                 });
+
                 canvas.toBlob((blob) => {
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
