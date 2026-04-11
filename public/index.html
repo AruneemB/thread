@@ -999,14 +999,35 @@
                             return;
                         }
 
+                        const messageCount = Array.isArray(data.messages) ? data.messages.length : 0;
+                        const isLargeFile = messageCount > 5000;
+
+                        // Show message count in progress indicator for large files
+                        if (loadingSpinner) {
+                            loadingSpinner.textContent = isLargeFile
+                                ? `Processing ${messageCount.toLocaleString()} messages…`
+                                : 'Processing…';
+                        }
+
                         setProcessingState(true);
 
-                        // Yield to event loop so spinner renders before heavy processing
+                        // Yield to event loop so the updated spinner text renders before
+                        // the synchronous processing work begins (prevents UI freeze).
                         setTimeout(() => {
                             try {
                                 const processedData = processExport(data);
-                                setProcessingState(false);
-                                renderDashboard(processedData);
+                                // For large files yield again before rendering so the
+                                // browser can paint any intermediate layout changes.
+                                if (isLargeFile) {
+                                    if (loadingSpinner) loadingSpinner.textContent = 'Rendering…';
+                                    setTimeout(() => {
+                                        setProcessingState(false);
+                                        renderDashboard(processedData);
+                                    }, 0);
+                                } else {
+                                    setProcessingState(false);
+                                    renderDashboard(processedData);
+                                }
                             } catch (processError) {
                                 setProcessingState(false);
                                 showError(processError.message || 'Failed to process export.');
