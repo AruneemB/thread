@@ -879,6 +879,7 @@
                 renderDashboard(demoData);
             });
 
+            // Wire download button: click → generatePNG → blob → file download
             const downloadBtn = document.getElementById('download-btn');
             downloadBtn.addEventListener('click', async () => {
                 const originalText = downloadBtn.textContent;
