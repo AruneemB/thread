@@ -879,6 +879,22 @@
                 renderDashboard(demoData);
             });
 
+            const downloadBtn = document.getElementById('download-btn');
+            downloadBtn.addEventListener('click', async () => {
+                const originalText = downloadBtn.textContent;
+                downloadBtn.textContent = 'Generating...';
+                downloadBtn.disabled = true;
+                try {
+                    await downloadPNG();
+                } catch (err) {
+                    console.error('PNG generation failed:', err);
+                    alert('Failed to generate PNG. Please try again.');
+                } finally {
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.disabled = false;
+                }
+            });
+
             document.querySelectorAll('input[name="sort"]').forEach(radio => {
                 radio.addEventListener('change', (e) => {
                     if (currentDashboardData) {
