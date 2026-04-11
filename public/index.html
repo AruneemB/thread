@@ -739,7 +739,8 @@
 
     <footer class="landing-footer">
         <button id="demo-btn" class="demo-button" aria-label="Try with sample data">Try with sample data</button>
-        <div class="privacy-notice">🔒 Your data <strong>never leaves this page</strong></div>
+        <!-- Privacy notice: all processing is client-side — no server, no storage, no analytics -->
+        <div class="privacy-notice">🔒 Your data <strong>never leaves this page</strong> — all processing happens in your browser</div>
 
         <div class="instructions">
             <h2>How it works:</h2>
@@ -905,8 +906,44 @@
     </script>
 
     <script>
+        // =======================================================================
+        // PRIVACY & SECURITY NOTES
+        // =======================================================================
+        //
+        // CLIENT-SIDE ONLY
+        //   All file parsing, data grouping, streak computation, and rendering
+        //   happens entirely within this JavaScript execution context in the
+        //   user's browser. There is no backend, no API call, and no analytics
+        //   beacon that receives any portion of the uploaded file or its derived
+        //   statistics.
+        //
+        // NO DATA TRANSMISSION
+        //   The FileReader API (used in handleFile) reads the export file into
+        //   a JavaScript string in memory. This string is passed directly to
+        //   JSON.parse() and then processExport(). At no point is the string
+        //   or any derived data written to localStorage, IndexedDB, cookies, or
+        //   transmitted over the network.
+        //
+        // NO PERSISTENT STORAGE
+        //   Uploaded files are held only in browser heap memory for the duration
+        //   of a single processing call. Once processExport() returns and the
+        //   dashboard is rendered, the raw file contents are no longer referenced
+        //   and will be garbage-collected. Closing or refreshing the tab leaves
+        //   no trace of the upload.
+        //
+        // THIRD-PARTY CODE
+        //   html2canvas is the only third-party dependency and it is fully inlined
+        //   in this file. No CDN, analytics, or tracking scripts are loaded.
+        //   The page makes zero outbound network requests after the initial load.
+        //
+        // CONTENT SECURITY
+        //   Member names sourced from the export are rendered via textContent (in
+        //   renderMemberCard's avatar and name nodes) or via Intl.NumberFormat,
+        //   not injected as raw HTML, preventing stored-XSS from malicious names
+        //   in the export file. The only innerHTML assignment receives only
+        //   data-derived values that are numeric or pre-formatted strings.
+        //
         // Zero external dependencies — html2canvas is inlined above.
-        // All processing is client-side; no data leaves this page.
         document.addEventListener('DOMContentLoaded', () => {
             const uploadZone = document.getElementById('upload-zone');
             const fileInput = document.getElementById('file-input');
