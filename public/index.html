@@ -1375,7 +1375,13 @@
                     scale: 2,
                     ignoreElements: (el) => el.classList.contains('no-export')
                 });
-                return canvas;
+                canvas.toBlob((blob) => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `thread-stats-${Date.now()}.png`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                });
             }
         });
     </script>
