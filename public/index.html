@@ -74,6 +74,20 @@
             cursor: pointer;
         }
 
+        .fade-in {
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .upload-zone[disabled], .demo-button[disabled] {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
         .page-header {
             text-align: center;
             padding: 3rem 0 2rem;
@@ -859,7 +873,11 @@
                 document.querySelector('.page-header').style.display = 'none';
                 document.getElementById('upload-zone').style.display = 'none';
                 document.querySelector('.landing-footer').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'block';
+                const dashboard = document.getElementById('dashboard');
+                dashboard.style.display = 'block';
+                dashboard.classList.remove('fade-in');
+                void dashboard.offsetWidth; // trigger reflow to restart animation
+                dashboard.classList.add('fade-in');
             }
 
             // Navigation event listeners
@@ -909,6 +927,19 @@
                 });
             });
 
+            function setProcessingState(active) {
+                const demoBtn = document.getElementById('demo-btn');
+                if (active) {
+                    uploadZone.setAttribute('disabled', '');
+                    demoBtn.setAttribute('disabled', '');
+                    loadingSpinner.style.display = 'flex';
+                } else {
+                    uploadZone.removeAttribute('disabled');
+                    demoBtn.removeAttribute('disabled');
+                    loadingSpinner.style.display = 'none';
+                }
+            }
+
             function handleFile(file) {
                 hideError();
                 const reader = new FileReader();
@@ -920,19 +951,20 @@
                             showError(validation.error);
                             return;
                         }
-                        
-                        loadingSpinner.style.display = 'flex';
 
-                        // Process data
-                        try {
-                            const processedData = processExport(data);
-                            setTimeout(() => {
-                                loadingSpinner.style.display = 'none';
+                        setProcessingState(true);
+
+                        // Yield to event loop so spinner renders before heavy processing
+                        setTimeout(() => {
+                            try {
+                                const processedData = processExport(data);
+                                setProcessingState(false);
                                 renderDashboard(processedData);
-                            }, 500);
-                        } catch (processError) {
-                            showError(processError.message || 'Failed to process export.');
-                        }
+                            } catch (processError) {
+                                setProcessingState(false);
+                                showError(processError.message || 'Failed to process export.');
+                            }
+                        }, 50);
 
                     } catch (error) {
                         console.error('Error parsing JSON:', error);
