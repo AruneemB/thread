@@ -1311,11 +1311,15 @@
                 const container = document.querySelector('.members-container');
                 container.innerHTML = '';
 
-                // Use a DocumentFragment to batch DOM insertions and minimize reflows
-                const fragment = document.createDocumentFragment();
+                if (dashboardData.name) {
+                    document.querySelector('.dashboard-title').textContent = dashboardData.name;
+                }
 
-                dashboardData.members.forEach(member => {
+                // Build a single card and append its grids using a DocumentFragment
+                // to batch all child insertions and minimise reflows.
+                function buildCard(member) {
                     const card = renderMemberCard(member);
+                    const fragment = document.createDocumentFragment();
 
                     const grid = renderCalendar(member.cells);
                     const gridSlot = card.querySelector(`#calendar-grid-${member.id}`);
@@ -1326,15 +1330,38 @@
                     if (labelsSlot) labelsSlot.appendChild(monthLabels);
 
                     fragment.appendChild(card);
-                });
-
-                container.appendChild(fragment);
-                
-                if (dashboardData.name) {
-                    document.querySelector('.dashboard-title').textContent = dashboardData.name;
+                    return fragment;
                 }
-                
-                showDashboard(dashboardData);
+
+                const CHUNK_SIZE = 5;
+                const members = dashboardData.members;
+
+                if (members.length <= CHUNK_SIZE) {
+                    // Small dataset: render all at once in a single paint.
+                    const outerFragment = document.createDocumentFragment();
+                    members.forEach(m => outerFragment.appendChild(buildCard(m)));
+                    container.appendChild(outerFragment);
+                    showDashboard(dashboardData);
+                } else {
+                    // Large dataset: render the first chunk immediately so the user
+                    // sees content quickly, then schedule remaining chunks via
+                    // requestAnimationFrame to avoid a single long blocking paint.
+                    function renderChunk(startIdx) {
+                        const outerFragment = document.createDocumentFragment();
+                        const endIdx = Math.min(startIdx + CHUNK_SIZE, members.length);
+                        for (let i = startIdx; i < endIdx; i++) {
+                            outerFragment.appendChild(buildCard(members[i]));
+                        }
+                        container.appendChild(outerFragment);
+
+                        if (endIdx < members.length) {
+                            requestAnimationFrame(() => renderChunk(endIdx));
+                        }
+                    }
+
+                    renderChunk(0);
+                    showDashboard(dashboardData);
+                }
             }
 
             function processExport(jsonData) {
