@@ -635,6 +635,7 @@
         <input type="file" accept=".json" id="file-input" style="display: none;">
     </div>
     <div id="error-msg" class="error-message" style="display: none;"></div>
+    <div id="loading-spinner" class="spinner" style="display: none;">Processing...</div>
 
     <footer class="landing-footer">
         <button id="demo-btn" class="demo-button">Try with sample data</button>
@@ -921,14 +922,17 @@
                         }
                         
                         loadingSpinner.style.display = 'flex';
-                        
+
                         // Process data
-                        const processedData = processExport(data);
-                        
-                        setTimeout(() => {
-                            loadingSpinner.style.display = 'none';
-                            renderDashboard(processedData);
-                        }, 500);
+                        try {
+                            const processedData = processExport(data);
+                            setTimeout(() => {
+                                loadingSpinner.style.display = 'none';
+                                renderDashboard(processedData);
+                            }, 500);
+                        } catch (processError) {
+                            showError(processError.message || 'Failed to process export.');
+                        }
 
                     } catch (error) {
                         console.error('Error parsing JSON:', error);
