@@ -843,6 +843,8 @@
     </script>
 
     <script>
+        // Zero external dependencies — html2canvas is inlined above.
+        // All processing is client-side; no data leaves this page.
         document.addEventListener('DOMContentLoaded', () => {
             const uploadZone = document.getElementById('upload-zone');
             const fileInput = document.getElementById('file-input');
