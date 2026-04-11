@@ -56,6 +56,56 @@ Thread is built on a modern, serverless-first stack:
 - **Framework**: Vitest for fast, reliable unit and integration testing.
 - **Coverage**: Comprehensive testing of commands, middleware, and database logic.
 
+## 🌐 Landing Page
+
+Thread includes a client-side landing page at `public/index.html` that lets anyone visualise Telegram group activity **without running the bot or sharing data with a server**.
+
+### Purpose
+
+The landing page is a standalone, zero-dependency HTML file that processes Telegram Desktop JSON exports entirely in the browser. It is served as the root URL of the Vercel deployment.
+
+### Features
+
+- **File upload**: drag-and-drop or click-to-browse a Telegram Desktop export (`.json`).
+- **Demo mode**: try the dashboard instantly with synthetic data — no upload required.
+- **Contribution graph**: GitHub-style 52-week activity heat-map per group member.
+- **Streak tracking**: current and all-time longest daily message streaks.
+- **Sorting**: sort members by total messages, current streak, or longest streak.
+- **PNG export**: download the full dashboard as a high-DPI image via html2canvas.
+- **Dark mode**: automatic system-preference dark/light theme.
+- **Mobile responsive**: readable and usable down to 375 px viewport width.
+
+### Usage
+
+1. Open `https://<your-deployment>.vercel.app/` in a browser.
+2. In Telegram Desktop: open the group → ☰ → Export chat history → JSON format.
+3. Drag the exported `.json` file onto the upload zone, or click to browse.
+4. The dashboard renders immediately — no server round-trip occurs.
+5. Optionally download the dashboard as a PNG using the **Download PNG** button.
+
+### Privacy
+
+All processing is **100% client-side**. The exported file is read by the browser's
+`FileReader` API, held in JavaScript memory for the duration of the session, and
+discarded when the page is closed or a new file is loaded. No data is transmitted to
+any server at any point.
+
+### Browser Compatibility
+
+| Browser | Version | Status |
+|---------|---------|--------|
+| Chrome / Edge | 90+ | ✅ Fully supported |
+| Firefox | 88+ | ✅ Fully supported |
+| Safari | 14+ | ✅ Fully supported |
+| Mobile Safari (iOS) | 14+ | ✅ Fully supported |
+| Chrome for Android | 90+ | ✅ Fully supported |
+
+### Live Demo
+
+Visit the deployed landing page at the root URL of the Vercel project (link available once deployed).
+
+---
+
 ## 📐 Roadmap
 
 Thread is continuously evolving. Upcoming milestones include:
