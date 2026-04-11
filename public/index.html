@@ -906,6 +906,12 @@
             // State management
             let currentDashboardData = null;
 
+            /**
+             * Transitions the page to the landing/upload state (State 1).
+             * Hides the dashboard and restores the upload zone and page header.
+             * Clears any previously loaded file from the file input so the same
+             * file can be re-selected after navigating back.
+             */
             function showLandingPage() {
                 document.getElementById('dashboard').style.display = 'none';
                 document.querySelector('.page-header').style.display = 'block';
@@ -915,6 +921,15 @@
                 fileInput.value = '';
             }
 
+            /**
+             * Transitions the page to the dashboard state (State 2).
+             * Hides the upload zone and header, shows the rendered dashboard
+             * with a CSS fade-in animation. Forces a reflow to restart the
+             * animation on every call, even when navigating between exports.
+             *
+             * @param {Object} dashboardData - Processed result from processExport()
+             *   or generateDemoData(), containing members, name, and dateRange.
+             */
             function showDashboard(dashboardData) {
                 currentDashboardData = dashboardData;
                 document.querySelector('.page-header').style.display = 'none';
@@ -974,6 +989,13 @@
                 });
             });
 
+            /**
+             * Enables or disables the upload UI during file processing.
+             * Prevents duplicate submissions while a file is being read or parsed.
+             *
+             * @param {boolean} active - true to show the loading spinner and
+             *   disable the upload zone and demo button; false to restore them.
+             */
             function setProcessingState(active) {
                 const demoBtn = document.getElementById('demo-btn');
                 if (active) {
@@ -987,6 +1009,17 @@
                 }
             }
 
+            /**
+             * Entry point for file processing after the user selects or drops a file.
+             * Reads the file as text via FileReader, validates the JSON structure,
+             * then delegates to processExport(). Uses two setTimeout(fn, 0) yields
+             * for large files (> 5 000 messages) so the browser can repaint the
+             * progress spinner before synchronous CPU work begins — preventing a
+             * frozen UI during processing.
+             *
+             * @param {File} file - A File object from an <input type="file"> or
+             *   a drag-and-drop DataTransfer event.
+             */
             function handleFile(file) {
                 hideError();
                 const reader = new FileReader();
@@ -1042,6 +1075,13 @@
                 reader.readAsText(file);
             }
 
+            /**
+             * Displays an inline error message inside the upload zone.
+             * Prepends an SVG warning icon and applies the `.error` CSS class
+             * to give the zone a red-tinted appearance.
+             *
+             * @param {string} message - User-facing description of the problem.
+             */
             function showError(message) {
                 if (loadingSpinner) loadingSpinner.style.display = 'none';
                 errorMsg.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> ' + message;
@@ -1049,11 +1089,26 @@
                 uploadZone.classList.add('error');
             }
 
+            /**
+             * Clears the error state: hides the error message element and
+             * removes the red border styling from the upload zone.
+             */
             function hideError() {
                 errorMsg.style.display = 'none';
                 uploadZone.classList.remove('error');
             }
 
+            /**
+             * Validates that the parsed JSON object is a Telegram Desktop export.
+             * Checks for the required `messages` array and verifies that at least
+             * one entry has all expected fields (type, from, from_id, date).
+             * Fails fast before any heavy processing begins.
+             *
+             * @param {*} data - Parsed JSON value from the uploaded file.
+             * @returns {{ valid: boolean, error: string }} An object where `valid`
+             *   is true when the file looks like a Telegram export, or false with
+             *   a human-readable `error` string explaining why it was rejected.
+             */
             function validateTelegramExport(data) {
                 if (!data || !Array.isArray(data.messages)) {
                     return { valid: false, error: 'Not a Telegram export file. Missing messages array.' };
@@ -1073,22 +1128,56 @@
                 return { valid: true, error: '' };
             }
 
+            /**
+             * Returns the ISO date string for the calendar day before the given date.
+             * Appends a midnight UTC time component before parsing to avoid DST
+             * ambiguity — without it, `new Date("YYYY-MM-DD")` is treated as UTC
+             * but manipulation via setDate() would use local time, producing
+             * off-by-one errors in timezones behind UTC.
+             *
+             * @param {string} dateStr - ISO date string, e.g. "2026-04-11"
+             * @returns {string} ISO date string for the previous day, e.g. "2026-04-10"
+             */
             function subtractOneDay(dateStr) {
                 const date = new Date(dateStr + 'T00:00:00Z');
                 date.setUTCDate(date.getUTCDate() - 1);
                 return date.toISOString().split('T')[0];
             }
 
+            /**
+             * Returns the ISO date string for the calendar day after the given date.
+             * Uses explicit UTC midnight to avoid DST-induced off-by-one errors
+             * (see subtractOneDay for the detailed rationale).
+             *
+             * @param {string} dateStr - ISO date string, e.g. "2026-04-11"
+             * @returns {string} ISO date string for the next day, e.g. "2026-04-12"
+             */
             function addOneDay(dateStr) {
                 const date = new Date(dateStr + 'T00:00:00Z');
                 date.setUTCDate(date.getUTCDate() + 1);
                 return date.toISOString().split('T')[0];
             }
 
+            /**
+             * Returns today's date as an ISO date string (YYYY-MM-DD) in UTC.
+             * All date arithmetic in this file uses UTC, so this function acts
+             * as the single source of truth for "now".
+             *
+             * @returns {string} Today's date, e.g. "2026-04-11"
+             */
             function getTodayISOString() {
                 return new Date().toISOString().split('T')[0];
             }
 
+            /**
+             * Returns the day-of-week index for the given date using Mon=0 … Sun=6.
+             * The calendar grid starts each week on Monday, not Sunday, so the raw
+             * UTC day (where 0=Sunday) is remapped via (day + 6) % 7 to shift
+             * Sunday from position 0 to position 6.
+             *
+             * @param {string} dateStr - ISO date string, e.g. "2026-04-11"
+             * @returns {number} 0 = Monday, 1 = Tuesday, … 6 = Sunday
+             */
             function getDayOfWeek(dateStr) {
                 const date = new Date(dateStr + 'T00:00:00Z');
                 let day = date.getUTCDay(); // 0 (Sun) to 6 (Sat)
@@ -1096,6 +1185,14 @@
                 return (day + 6) % 7;
             }
 
+            /**
+             * Formats an ISO date string into a human-readable locale string for
+             * use in calendar cell tooltips and other display contexts.
+             * Always parses in UTC to stay consistent with all other date operations.
+             *
+             * @param {string} dateStr - ISO date string, e.g. "2026-04-11"
+             * @returns {string} Formatted string, e.g. "Apr 11, 2026"
+             */
             function formatDate(dateStr) {
                 const date = new Date(dateStr + 'T00:00:00Z');
                 return date.toLocaleDateString('en-US', {
@@ -1106,6 +1203,23 @@
                 });
             }
 
+            /**
+             * Builds the ordered array of 371 calendar cell objects that covers a
+             * full 52-week year plus a partial leading week, always ending on the
+             * nearest future Sunday so the rightmost column is never cut short.
+             *
+             * Activity level thresholds (chosen to match GitHub's visual scale):
+             *   0 → no activity, or a future date (rendered transparent)
+             *   1 → 1–4 messages
+             *   2 → 5–9 messages
+             *   3 → 10–19 messages
+             *   4 → 20+ messages
+             *
+             * @param {Object.<string, number>} dailyCounts - Map of ISO date string
+             *   to the number of messages sent on that day.
+             * @returns {Array<{date: string, count: number, level: number, isFuture: boolean}>}
+             *   Ordered chronologically from oldest to newest.
+             */
             function buildCells(dailyCounts) {
                 const cells = [];
                 const today = getTodayISOString();
@@ -1148,6 +1262,21 @@
                 return cells;
             }
 
+            /**
+             * Computes the current and all-time longest message streaks for a user.
+             *
+             * Current streak: walks backward from today, counting consecutive days
+             * that have at least one message. Breaks as soon as a gap is found.
+             * If the user has not sent a message today, the current streak is 0
+             * (a streak must include the current day to be "active").
+             *
+             * Longest streak: collects all active days up to today, sorts them,
+             * then counts the longest consecutive run by checking whether each date
+             * equals addOneDay(previousDate).
+             *
+             * @param {Object.<string, number>} dailyCounts - Map of ISO date → count.
+             * @returns {{ current: number, longest: number }}
+             */
             function computeStreaks(dailyCounts) {
                 if (!dailyCounts || Object.keys(dailyCounts).length === 0) {
                     return { current: 0, longest: 0 };
@@ -1183,6 +1312,16 @@
                 return { current, longest };
             }
 
+            /**
+             * Derives a two-character uppercase initials string from a display name.
+             * - Single-word names: first two characters of the word.
+             * - Multi-word names: first character of the first and last words.
+             * Returns "??" for empty, null, or undefined input to keep the avatar
+             * rendering safe even for anonymous Telegram users.
+             *
+             * @param {string|null|undefined} name - Display name from the export.
+             * @returns {string} Two-character initials, e.g. "AC", "BM", or "??"
+             */
             function initialsFrom(name) {
                 if (!name) return '??';
                 const parts = name.trim().split(/\s+/);
@@ -1195,6 +1334,12 @@
                 return (first + last).toUpperCase();
             }
 
+            /**
+             * 8-color palette for deterministic avatar backgrounds.
+             * Colors are assigned by hashing the numeric user ID string so that
+             * every user always receives the same color across re-renders and
+             * page reloads without storing any mapping.
+             */
             const avatarColors = [
                 '#3b82f6', // blue
                 '#8b5cf6', // purple
@@ -1206,6 +1351,15 @@
                 '#6366f1'  // indigo
             ];
 
+            /**
+             * Deterministically picks an avatar background color from the palette
+             * by hashing the user ID string with a simple polynomial rolling hash.
+             * The same user ID will always produce the same color index, making
+             * the UI visually stable even after sorting or re-uploading.
+             *
+             * @param {string|number} userId - Telegram user ID (e.g. "user1234567890")
+             * @returns {string} A CSS hex color string from the avatarColors array.
+             */
             function avatarColorFromId(userId) {
                 const idStr = String(userId);
                 let hash = 0;
@@ -1216,6 +1370,15 @@
                 return avatarColors[index];
             }
 
+            /**
+             * Builds the month-label row rendered above the calendar grid.
+             * Iterates over the first cell of each week column (every 7th cell)
+             * and emits a label only when the UTC month changes, preventing
+             * duplicate labels for months that span more than one column.
+             *
+             * @param {Array<{date: string}>} cells - Ordered cell array from buildCells().
+             * @returns {HTMLDivElement} A div.month-labels element ready to insert.
+             */
             function renderMonthLabels(cells) {
                 const container = document.createElement('div');
                 container.className = 'month-labels';
@@ -1235,6 +1398,18 @@
                 return container;
             }
 
+            /**
+             * Builds the 53×7 calendar grid element for a single member.
+             * Each of the 371 cells receives a `cell-level-N` CSS class (0–4)
+             * controlling its background colour, plus a native title tooltip
+             * showing the exact date and message count on hover.
+             * Future cells are rendered with a transparent background so the
+             * grid always fills a complete 53-column year without phantom data.
+             *
+             * @param {Array<{date: string, count: number, level: number, isFuture: boolean}>} cells
+             *   Ordered cell array from buildCells().
+             * @returns {HTMLDivElement} A div.calendar-grid element.
+             */
             function renderCalendar(cells) {
                 const grid = document.createElement('div');
                 grid.className = 'calendar-grid';
@@ -1261,6 +1436,18 @@
                 return grid;
             }
 
+            /**
+             * Builds the static HTML shell for a member card: avatar, name, total
+             * message count, streak badges, and empty slot elements that will be
+             * filled by renderDashboard() with the calendar grid and month labels.
+             * Using placeholder IDs avoids a second DOM query pass and keeps the
+             * calendar injection O(1) per card.
+             *
+             * @param {{ id: string, name: string, color: string, initials: string,
+             *           total: number, currentStreak: number, longestStreak: number,
+             *           dailyCounts: Object.<string, number> }} member
+             * @returns {HTMLDivElement} A div.member-card with empty calendar slots.
+             */
             function renderMemberCard(member) {
                 const card = document.createElement('div');
                 card.className = 'member-card';
@@ -1307,6 +1494,20 @@
                 return card;
             }
 
+            /**
+             * Renders all member cards into .members-container.
+             * Uses DocumentFragment batching and chunked requestAnimationFrame
+             * scheduling to avoid blocking the main thread for groups with many
+             * members. The first CHUNK_SIZE cards are painted immediately so the
+             * user sees content without waiting for the full render.
+             *
+             * Small groups (≤ CHUNK_SIZE): rendered synchronously in one paint.
+             * Large groups: first chunk painted synchronously, then each subsequent
+             * chunk is scheduled via requestAnimationFrame so the browser can
+             * composite frames between batches.
+             *
+             * @param {{ members: Array, name: string, dateRange: Object }} dashboardData
+             */
             function renderDashboard(dashboardData) {
                 const container = document.querySelector('.members-container');
                 container.innerHTML = '';
@@ -1316,7 +1517,10 @@
                 }
 
                 // Build a single card and append its grids using a DocumentFragment
-                // to batch all child insertions and minimise reflows.
+                // to batch all child insertions and minimise reflows. The calendar
+                // grid and month labels are injected into the pre-allocated slot
+                // elements rather than being set via innerHTML to keep the DOM
+                // surgery contained to a single parent per member.
                 function buildCard(member) {
                     const card = renderMemberCard(member);
                     const fragment = document.createDocumentFragment();
@@ -1333,6 +1537,9 @@
                     return fragment;
                 }
 
+                // Cards per animation frame for progressive rendering.
+                // 5 is enough to fill a viewport on most screens without
+                // causing a visible jank spike during the initial paint.
                 const CHUNK_SIZE = 5;
                 const members = dashboardData.members;
 
@@ -1346,6 +1553,8 @@
                     // Large dataset: render the first chunk immediately so the user
                     // sees content quickly, then schedule remaining chunks via
                     // requestAnimationFrame to avoid a single long blocking paint.
+                    // rAF fires after the browser has finished painting the previous
+                    // frame, giving it a natural break between batches.
                     function renderChunk(startIdx) {
                         const outerFragment = document.createDocumentFragment();
                         const endIdx = Math.min(startIdx + CHUNK_SIZE, members.length);
@@ -1364,6 +1573,24 @@
                 }
             }
 
+            /**
+             * Parses a Telegram Desktop JSON export into the normalised dashboard
+             * data structure consumed by renderDashboard().
+             *
+             * Data flow:
+             *   raw JSON → filter valid messages (type=message, from_id, date)
+             *     → group by user → per-user: computeStreaks + buildCells + totals
+             *     → sort by total descending → return { members, name, dateRange }
+             *
+             * Complexity: O(m) for grouping + O(u × d log d) for streaks, where
+             * m = total messages, u = unique users, d = active days per user.
+             * Both buildCells and streak calculation scale with u, not m, so
+             * large exports with few users remain fast.
+             *
+             * @param {Object} jsonData - Parsed Telegram export object.
+             * @returns {{ members: Array, name: string, dateRange: { start: string, end: string } }}
+             * @throws {Error} If the data is structurally invalid or contains no messages.
+             */
             function processExport(jsonData) {
                 // Performance expectations (measured on a mid-range 2023 laptop):
                 //     ~1,000 messages  →  < 100 ms
@@ -1455,6 +1682,15 @@
                 };
             }
 
+            /**
+             * Returns a sorted copy of the members array without mutating the original.
+             * Tie-breaking is always by total messages descending, then by display
+             * name (locale-aware) so the sort order is fully deterministic.
+             *
+             * @param {Array} members - Member objects from processExport().
+             * @param {'total'|'currentStreak'|'longestStreak'} sortBy - Primary criterion.
+             * @returns {Array} New sorted array; the original is unchanged.
+             */
             function sortMembers(members, sortBy) {
                 return [...members].sort((a, b) => {
                     let diff = 0;
@@ -1480,6 +1716,15 @@
                 });
             }
 
+            /**
+             * Generates a deterministic set of demo member data for the "Try Demo"
+             * button so users can preview the dashboard without uploading real data.
+             * Activity patterns are produced with Math.sin-based seeding, meaning
+             * the same data is generated on every call and every page load — the
+             * demo is visually interesting but never random.
+             *
+             * @returns {{ members: Array, name: string, dateRange: { start: string, end: string } }}
+             */
             function generateDemoData() {
                 const demoUsers = [
                     { name: "Alice Chen", id: "demo0" },
@@ -1540,6 +1785,23 @@
                 };
             }
 
+            /**
+             * Captures the visible dashboard as a high-DPI PNG and triggers a
+             * browser file download. Uses the inlined html2canvas library at 2×
+             * device pixel ratio for crisp output on retina displays.
+             *
+             * html2canvas options:
+             *   scale: 2         — 2× DPR ensures sharp text and cell edges
+             *   allowTaint: false — keeps the canvas origin-clean so toBlob() works
+             *   useCORS: true    — attempts CORS fetch for external images; the
+             *                      favicon is same-origin SVG so this is a no-op
+             *   ignoreElements   — strips elements with .no-export (e.g. buttons)
+             *
+             * For dashboards with many members the full scrollHeight is captured,
+             * which can take several seconds; this is expected behaviour.
+             *
+             * @returns {Promise<void>} Resolves after the download is triggered.
+             */
             async function downloadPNG() {
                 const dashboard = document.getElementById('dashboard');
 
