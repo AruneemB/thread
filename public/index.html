@@ -326,6 +326,14 @@
             color: var(--teal-700);
         }
 
+        .action-button:focus-visible,
+        .demo-button:focus-visible,
+        .sort-btn:focus-visible,
+        .upload-zone:focus-visible {
+            outline: 2px solid var(--teal-500);
+            outline-offset: 2px;
+        }
+
         .sort-controls {
             display: flex;
             align-items: center;
@@ -660,15 +668,15 @@
         <h1>Visualize Telegram Group Activity</h1>
         <p class="subtitle">GitHub-style contribution heatmaps</p>
     </header>
-    <div class="upload-zone" id="upload-zone">
+    <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop JSON file here or click to browse">
         <p>Drop JSON here or click to browse files</p>
         <input type="file" accept=".json" id="file-input" style="display: none;">
     </div>
-    <div id="error-msg" class="error-message" style="display: none;"></div>
+    <div id="error-msg" class="error-message" role="status" aria-live="polite" style="display: none;"></div>
     <div id="loading-spinner" class="spinner" style="display: none;">Processing...</div>
 
     <footer class="landing-footer">
-        <button id="demo-btn" class="demo-button">Try with sample data</button>
+        <button id="demo-btn" class="demo-button" aria-label="Try with sample data">Try with sample data</button>
         <div class="privacy-notice">🔒 Your data <strong>never leaves this page</strong></div>
 
         <div class="instructions">
@@ -732,8 +740,8 @@
                 <h2 class="dashboard-title">Chat Stats</h2>
             </div>
             <div class="header-right">
-                <button id="download-btn" class="action-button no-export">Download as PNG</button>
-                <button id="reset-btn" class="action-button secondary no-export">Try Another File</button>
+                <button id="download-btn" class="action-button no-export" aria-label="Download dashboard as PNG">Download as PNG</button>
+                <button id="reset-btn" class="action-button secondary no-export" aria-label="Return to upload page">Try Another File</button>
             </div>
         </header>
 
@@ -841,9 +849,15 @@
             const errorMsg = document.getElementById('error-msg');
             const loadingSpinner = document.getElementById('loading-spinner');
 
-            // Click to browse
+            // Click or Enter/Space to browse
             uploadZone.addEventListener('click', () => {
                 fileInput.click();
+            });
+            uploadZone.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fileInput.click();
+                }
             });
 
             // Drag and drop
