@@ -10,6 +10,11 @@
       "maxDuration": 120,
       "memory": 1024,
       "includeFiles": "src/templates/**"
+    },
+    "api/share/[token].ts": {
+      "maxDuration": 10,
+      "memory": 256,
+      "includeFiles": "src/templates/**"
     }
   },
   "crons": [
