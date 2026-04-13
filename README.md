@@ -25,6 +25,7 @@ Thread visualizes your Telegram group chats as a contribution graph, tracking st
 - **Streak Tracking**: Real-time tracking of current and longest message streaks.
 - **Group Statistics**: Comprehensive aggregate stats via the `/stats` command.
 - **Personal Insights**: Individual performance metrics accessible through `/mystats`.
+- **Share Links**: `/stats` replies include a short URL that opens an interactive live dashboard in any browser.
 - **Weekly Digests**: Automated summaries sent every Monday at 09:00 UTC.
 - **Serverless Architecture**: Built for high availability and low latency on Vercel.
 
@@ -32,8 +33,8 @@ Thread visualizes your Telegram group chats as a contribution graph, tracking st
 
 Interact with Thread using the following commands:
 
-- **`/stats`**: Generates a full activity dashboard for the current group chat, showing a contribution heat-map for top active members.
-- **`/stats @username`**: Displays a single member's activity card for the group.
+- **`/stats`**: Generates a full activity dashboard for the current group chat, showing a contribution heat-map for top active members. The reply includes a short share link that opens an interactive dashboard in any browser.
+- **`/stats @username`**: Displays a single member's activity card for the group, also with a share link.
 - **`/mystats`**: Sends your personal activity card for the current group directly to your DMs (keeps the group chat clean!).
 - **`/threadhelp`**: Displays a help message with all available commands and their usage.
 
@@ -72,6 +73,8 @@ The landing page is a standalone, zero-dependency HTML file that processes Teleg
 - **Streak tracking**: current and all-time longest daily message streaks.
 - **Sorting**: sort members by total messages, current streak, or longest streak.
 - **PNG export**: download the full dashboard as a high-DPI image via html2canvas.
+- **Share links**: the **Copy Link** button saves the current dashboard to the database and copies a short `/?s=TOKEN` URL to the clipboard. Anyone with the link can open the same dashboard without uploading a file.
+- **Help tooltip**: hover the `?` icon next to "How it works:" for step-by-step instructions on exporting chat history from Telegram Desktop.
 - **Dark mode**: automatic system-preference dark/light theme.
 - **Mobile responsive**: readable and usable down to 375 px viewport width.
 
@@ -81,14 +84,12 @@ The landing page is a standalone, zero-dependency HTML file that processes Teleg
 2. In Telegram Desktop: open the group → ☰ → Export chat history → JSON format.
 3. Drag the exported `.json` file onto the upload zone, or click to browse.
 4. The dashboard renders immediately — no server round-trip occurs.
-5. Optionally download the dashboard as a PNG using the **Download PNG** button.
+5. Optionally download the dashboard as a PNG using the **Download as PNG** button.
+6. Optionally share the dashboard using the **Copy Link** button — this stores a snapshot in the database and copies a short URL to your clipboard.
 
 ### Privacy
 
-All processing is **100% client-side**. The exported file is read by the browser's
-`FileReader` API, held in JavaScript memory for the duration of the session, and
-discarded when the page is closed or a new file is loaded. No data is transmitted to
-any server at any point.
+Viewing and browsing the dashboard is **100% client-side** — the exported file is read by the browser's `FileReader` API, held in JavaScript memory, and discarded when the page is closed. No data is transmitted unless you explicitly click **Copy Link**, which stores a snapshot of the rendered dashboard in the Turso database so the share URL can be resolved later.
 
 ### Browser Compatibility
 
@@ -158,18 +159,26 @@ VERCEL_URL=your-deployment.vercel.app npm run webhook:set
 ## 📂 Project Structure
 
 ```text
-├── api/                # Vercel Serverless Functions (Webhooks & Cron)
-│   ├── webhook.ts      # Main Telegram webhook entry point
-│   └── cron/           # Scheduled jobs (Weekly digest)
-├── src/                # Core application logic
-│   ├── bot/            # grammY bot setup and middleware
-│   ├── commands/       # Bot command handlers (/stats, /mystats)
-│   ├── db/             # Database access layer (DAL)
-│   ├── renderer/       # Graph rendering logic using Puppeteer
-│   ├── templates/      # HTML/SVG templates for visualizations
-│   └── utils/          # Logging and shared utility functions
-├── vitest.config.ts    # Testing configuration
-└── vercel.json         # Vercel deployment and cron configuration
+├── api/                     # Vercel Serverless Functions
+│   ├── webhook.ts           # Main Telegram webhook entry point
+│   ├── save.ts              # POST — saves a landing page snapshot, returns short URL
+│   ├── data/
+│   │   └── [token].ts       # GET — returns raw JSON for a landing page snapshot
+│   ├── share/
+│   │   └── [token].ts       # GET — serves interactive HTML dashboard (bot share links)
+│   └── cron/
+│       └── digest.ts        # Scheduled weekly digest (Mondays 09:00 UTC)
+├── public/
+│   └── index.html           # Self-contained landing page (client-side, no dependencies)
+├── src/                     # Core application logic
+│   ├── bot/                 # grammY bot setup and middleware
+│   ├── commands/            # Bot command handlers (/stats, /mystats)
+│   ├── db/                  # Database access layer (DAL)
+│   ├── renderer/            # Graph rendering logic using Puppeteer
+│   ├── templates/           # HTML/SVG templates for visualizations
+│   └── utils/               # Logging and shared utility functions
+├── vitest.config.ts         # Testing configuration
+└── vercel.json              # Vercel deployment and cron configuration
 ```
 
 ---
