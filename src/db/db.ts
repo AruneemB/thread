@@ -2,6 +2,7 @@ import { createClient, type Client, type ResultSet } from "@libsql/client";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
+import { type DashboardData } from "../renderer/renderer.js";
 
 const log = logger.child({ module: "db" });
 
@@ -205,6 +206,14 @@ export async function setCooldown(chatId: string, timestamp: string): Promise<vo
 
 export function generateSnapshotToken(): string {
   return randomBytes(16).toString("hex");
+}
+
+export async function saveSnapshot(token: string, data: DashboardData): Promise<void> {
+  const client = await getDb();
+  await client.execute({
+    sql: `INSERT INTO snapshots (token, data, created_at) VALUES (?, ?, ?)`,
+    args: [token, JSON.stringify(data), new Date().toISOString()],
+  });
 }
 
 // --- Exports ---
