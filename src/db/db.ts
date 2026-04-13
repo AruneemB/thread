@@ -1,4 +1,5 @@
 import { createClient, type Client, type ResultSet } from "@libsql/client";
+import { randomBytes } from "crypto";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
 
@@ -198,6 +199,12 @@ export async function setCooldown(chatId: string, timestamp: string): Promise<vo
     `,
     args: [chatId, timestamp],
   });
+}
+
+// --- Snapshot Functions ---
+
+export function generateSnapshotToken(): string {
+  return randomBytes(16).toString("hex");
 }
 
 // --- Exports ---
