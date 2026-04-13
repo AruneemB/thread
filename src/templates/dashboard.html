@@ -230,12 +230,100 @@
     .cell-3 { background: #1d9e75; }
     .cell-4 { background: #0f6e56; }
     .cell-future { background: transparent; }
+
+    .help-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .help-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      color: #9ca3af;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+      user-select: none;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
+    .help-tooltip {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 280px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+      padding: 14px 16px;
+      z-index: 100;
+    }
+
+    .help-wrap:hover .help-tooltip {
+      display: block;
+    }
+
+    .help-tooltip-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+
+    .help-tooltip ol {
+      padding-left: 16px;
+      margin: 0;
+    }
+
+    .help-tooltip li {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.6;
+    }
+
+    .help-tooltip li + li {
+      margin-top: 2px;
+    }
+
+    .help-tooltip-note {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #f3f4f6;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <span class="group-name">[Group Name]</span>
     <span class="date-range">[date range]</span>
+    <div class="help-wrap">
+      <span class="help-icon">?</span>
+      <div class="help-tooltip">
+        <div class="help-tooltip-title">How to export your chat history</div>
+        <ol>
+          <li>Open <strong>Telegram Desktop</strong></li>
+          <li>Navigate to the group chat</li>
+          <li>Click the <strong>⋮ menu</strong> (top-right)</li>
+          <li>Select <strong>Export chat history</strong></li>
+          <li>Set format to <strong>Machine-readable JSON</strong></li>
+          <li>Choose a date range and click <strong>Export</strong></li>
+        </ol>
+        <div class="help-tooltip-note">Requires Telegram Desktop — not available on mobile.</div>
+      </div>
+    </div>
   </div>
 
   <div class="sort-bar">
