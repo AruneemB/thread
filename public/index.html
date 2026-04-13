@@ -2220,7 +2220,10 @@
                         body: JSON.stringify({ message, history: chatHistory.slice(0, -1) })
                     });
 
-                    if (!response.ok) throw new Error('Chat API failed');
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || 'Chat API failed');
+                    }
                     
                     const data = await response.json();
                     addMessage(data.response, 'assistant');
