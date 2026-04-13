@@ -28,12 +28,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    // Using gemini-1.5-flash as it is more stable and widely available
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // 1. Gather docs context
     let context = "You are the Thread Assistant, an expert AI for the 'Thread' project. ";
     context += "Thread visualizes Telegram group activity as GitHub-style heatmaps. ";
-    context += "Use the following documentation to answer questions accurately and concisely.\n\n";
+    context += "Use the following documentation to answer questions accurately and concisely. ";
+    context += "If you don't know the answer, say you don't know and suggest checking the docs.\n\n";
 
     const docFiles = [
       "README.md",
@@ -70,7 +72,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ response: responseText });
   } catch (error: any) {
-    console.error("Gemini API error:", error);
+    // Log detailed error for Vercel logs
+    console.error("Gemini API error detail:", {
+      message: error.message,
+      stack: error.stack,
+      status: error.status,
+      details: error.details
+    });
     return res.status(500).json({ error: "Failed to generate response", details: error.message });
   }
 }
