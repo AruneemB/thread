@@ -35,10 +35,12 @@ mystatsComposer.command("mystats", async (ctx) => {
     members: [memberData],
   };
 
+  const log = (await import("../utils/logger.js")).logger.child({ module: "mystats" });
   let png: Buffer;
   try {
     png = await renderer.render(dashboardData);
-  } catch {
+  } catch (err) {
+    log.error({ err }, "Render failed (mystats)");
     await ctx.reply("Something went wrong generating your stats.");
     return;
   }

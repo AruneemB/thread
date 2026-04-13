@@ -152,6 +152,7 @@ statsComposer.command("stats", async (ctx) => {
     try {
       png = await renderer.render(dashboardData);
     } catch (err: unknown) {
+      log.error({ err }, "Render failed (single member)");
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes("Timeout") || message.includes("timeout")) {
         await ctx.reply("Render timed out. Try again in a moment.");
@@ -209,6 +210,7 @@ statsComposer.command("stats", async (ctx) => {
   try {
     png = await renderer.render(dashboardData);
   } catch (err: unknown) {
+    log.error({ err }, "Render failed (group stats)");
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes("Timeout") || message.includes("timeout")) {
       await ctx.reply("Render timed out. Try again in a moment.");
@@ -241,10 +243,17 @@ statsComposer.command("stats", async (ctx) => {
 });
 
 statsComposer.command("threadhelp", async (ctx) => {
-  await ctx.reply(
-    `/stats — Generate the full group activity dashboard\n` +
-    `/stats @username — View a single member's activity card\n` +
-    `/mystats — Get your personal stats sent via DM\n` +
-    `/threadhelp — Show this help message`,
-  );
+  log.info({ chat_id: ctx.chat.id, user_id: ctx.from?.id }, "threadhelp command received");
+  try {
+    await ctx.reply(
+      `/stats — Generate the full group activity dashboard\n` +
+      `/stats @username — View a single member's activity card\n` +
+      `/mystats — Get your personal stats sent via DM\n` +
+      `/threadhelp — Show this help message`,
+    );
+    log.info({ chat_id: ctx.chat.id }, "threadhelp reply sent");
+  } catch (err) {
+    log.error({ err, chat_id: ctx.chat.id }, "threadhelp reply failed");
+    throw err;
+  }
 });

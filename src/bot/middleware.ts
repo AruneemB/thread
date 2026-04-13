@@ -19,9 +19,12 @@ export function computeMsgLength(text: string | undefined): number {
 }
 
 export function registerMessageHandler(bot: Bot, logger: Logger): void {
-  bot.on("message", async (ctx) => {
+  bot.on("message", async (ctx, next) => {
     const msg = ctx.message;
-    if (!msg.from) return;
+    if (!msg.from) {
+      await next();
+      return;
+    }
 
     const chat_id = String(msg.chat.id);
     const user_id = String(msg.from.id);
@@ -37,5 +40,7 @@ export function registerMessageHandler(bot: Bot, logger: Logger): void {
 
     try { await insertMessage({ chat_id, user_id, username, first_name, date, hour, dow, msg_length }); }
     catch (err) { logger.error({ err, chat_id, user_id }, "Failed to insert message"); }
+
+    await next();
   });
 }
