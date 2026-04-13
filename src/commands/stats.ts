@@ -161,8 +161,20 @@ statsComposer.command("stats", async (ctx) => {
       return;
     }
 
+    const token = generateSnapshotToken();
+    const baseUrl = process.env.APP_BASE_URL ?? "";
+    let shareUrl: string | null = null;
+    try {
+      await saveSnapshot(token, dashboardData);
+      if (baseUrl) shareUrl = `${baseUrl}/api/share/${token}`;
+    } catch (err) {
+      log.warn({ err }, "Failed to save snapshot");
+    }
+
     await ctx.replyWithPhoto(new InputFile(png, "thread-stats.png"), {
-      caption: `Thread — activity report for ${groupName}`,
+      caption: shareUrl
+        ? `Thread — activity report for ${groupName}\n\nView live: ${shareUrl}`
+        : `Thread — activity report for ${groupName}`,
     });
 
     await setCooldown(chatId, new Date().toISOString());
