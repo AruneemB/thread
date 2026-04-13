@@ -780,8 +780,10 @@
 
     <footer class="landing-footer">
         <button id="demo-btn" class="demo-button" aria-label="Try with sample data">Try with sample data</button>
-        <!-- Privacy notice: all processing is client-side — no server, no storage, no analytics -->
-        <div class="privacy-notice">🔒 Your data <strong>never leaves this page</strong> — all processing happens in your browser</div>
+        <!-- Privacy notice: JSON uploads are client-side, but bot and sharing involve server-side stats -->
+        <div class="privacy-notice">
+            🔒 <strong>Privacy First:</strong> JSON uploads stay in your browser. Using the bot or sharing a dashboard sends only the required stats to our secure, temporary server.
+        </div>
 
         <div class="instructions">
             <h2 style="display:inline-flex;align-items:center;">How it works:
