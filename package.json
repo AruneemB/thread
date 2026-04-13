@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/AruneemB/thread#readme",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@libsql/client": "^0.14.0",
     "@sparticuz/chromium": "^131.0.0",
     "grammy": "^1.41.1",
