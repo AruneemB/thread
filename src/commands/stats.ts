@@ -1,7 +1,10 @@
 import { Composer, InputFile } from "grammy";
 import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
 import { renderer, type DashboardData, type MemberData } from "../renderer/renderer.js";
-import { getMemberByUsername, getCooldown, setCooldown } from "../db/db.js";
+import { getMemberByUsername, getCooldown, setCooldown, generateSnapshotToken, saveSnapshot } from "../db/db.js";
+import { logger } from "../utils/logger.js";
+
+const log = logger.child({ module: "stats" });
 
 const AVATAR_COLORS = [
   "#e57373", "#f06292", "#ba68c8", "#9575cd",
