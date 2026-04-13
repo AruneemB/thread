@@ -1149,110 +1149,22 @@
                 renderDashboard(demoData);
             });
 
-            /**
-             * Encodes dashboard data into a compact URL-safe string for sharing.
-             *
-             * Format (v2): only the irreducible inputs are stored.
-             *   - Derived fields (total, streaks, cells, dateRange) are dropped and
-             *     recomputed on decode, saving ~40% of payload before compression.
-             *   - ISO date strings ("2024-01-01", 10 chars each) are replaced by
-             *     [base, [offset, count], ...] — base is days-since-epoch for the
-             *     member's first active day; offsets are small integers from there.
-             *     This removes the repeated year/month prefix and compresses ~2× better.
-             *   - Short JSON keys (n/i/b/d) cut object overhead.
-             *
-             * Tags: 'z' = deflate-raw compressed (modern browsers), 'j' = plain base64.
-             */
-            async function encodeShareData(data) {
-                const DAY_MS = 86400000;
-                const payload = {
-                    v: 2,
-                    n: data.name,
-                    m: data.members.map(m => {
-                        const sorted = Object.entries(m.dailyCounts)
-                            .map(([d, c]) => [Math.round(Date.parse(d) / DAY_MS), c])
-                            .sort((a, b) => a[0] - b[0]);
-                        const base = sorted.length ? sorted[0][0] : 0;
-                        return { n: m.name, i: m.id, b: base, d: sorted.map(([day, c]) => [day - base, c]) };
-                    })
-                };
-                const json = JSON.stringify(payload);
-                if (typeof CompressionStream !== 'undefined') {
-                    const cs = new CompressionStream('deflate-raw');
-                    const w = cs.writable.getWriter();
-                    w.write(new TextEncoder().encode(json));
-                    w.close();
-                    const buf = await new Response(cs.readable).arrayBuffer();
-                    let bin = '';
-                    new Uint8Array(buf).forEach(b => { bin += String.fromCharCode(b); });
-                    return 'z' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-                }
-                return 'j' + btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-            }
-
-            /**
-             * Decodes a share string and returns a fully-resolved dashboardData object
-             * ready to pass directly to renderDashboard(). Recomputes all derived fields
-             * (streaks, cells, initials, avatar color) from the stored dailyCounts.
-             */
-            async function decodeShareData(encoded) {
-                const tag = encoded[0];
-                const b64 = encoded.slice(1).replace(/-/g, '+').replace(/_/g, '/');
-                const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-                let payload;
-                if (tag === 'z') {
-                    const ds = new DecompressionStream('deflate-raw');
-                    const w = ds.writable.getWriter();
-                    w.write(bytes);
-                    w.close();
-                    payload = JSON.parse(await new Response(ds.readable).text());
-                } else {
-                    payload = JSON.parse(decodeURIComponent(escape(String.fromCharCode(...bytes))));
-                }
-
-                // v2 compact format — reconstruct dailyCounts from offset arrays
-                const DAY_MS = 86400000;
-                const members = (payload.v === 2 ? payload.m : payload.members).map(m => {
-                    let dailyCounts;
-                    if (payload.v === 2) {
-                        dailyCounts = {};
-                        m.d.forEach(([off, cnt]) => {
-                            const dateStr = new Date((m.b + off) * DAY_MS).toISOString().slice(0, 10);
-                            dailyCounts[dateStr] = cnt;
-                        });
-                    } else {
-                        dailyCounts = m.dailyCounts;
-                    }
-                    const streaks = computeStreaks(dailyCounts);
-                    const dates = Object.keys(dailyCounts).sort();
-                    return {
-                        name: m.name || m.n,
-                        id: m.id || m.i,
-                        dailyCounts,
-                        total: Object.values(dailyCounts).reduce((a, b) => a + b, 0),
-                        currentStreak: streaks.current,
-                        longestStreak: streaks.longest,
-                        mostRecent: dates[dates.length - 1],
-                        initials: initialsFrom(m.name || m.n),
-                        color: avatarColorFromId(m.id || m.i),
-                        cells: buildCells(dailyCounts)
-                    };
-                });
-                return { name: payload.name || payload.n, members };
-            }
-
-            // Wire copy-link button: encode dashboard data into URL hash, copy to clipboard
+            // Wire copy-link button: POST data to /api/save, copy the returned short URL
             const copyLinkBtn = document.getElementById('copy-link-btn');
             copyLinkBtn.addEventListener('click', async () => {
                 if (!currentDashboardData) return;
                 const orig = copyLinkBtn.textContent;
-                copyLinkBtn.textContent = 'Generating...';
+                copyLinkBtn.textContent = 'Saving...';
                 copyLinkBtn.disabled = true;
-                let shareUrl = '';
                 try {
-                    const encoded = await encodeShareData(currentDashboardData);
-                    shareUrl = window.location.origin + window.location.pathname + '#' + encoded;
-                    await navigator.clipboard.writeText(shareUrl);
+                    const res = await fetch('/api/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(currentDashboardData)
+                    });
+                    if (!res.ok) throw new Error('Save failed');
+                    const { url } = await res.json();
+                    await navigator.clipboard.writeText(url).catch(() => prompt('Copy this link:', url));
                     copyLinkBtn.textContent = 'Copied!';
                     setTimeout(() => {
                         copyLinkBtn.textContent = orig;
@@ -1261,7 +1173,7 @@
                 } catch {
                     copyLinkBtn.textContent = orig;
                     copyLinkBtn.disabled = false;
-                    if (shareUrl) prompt('Copy this link:', shareUrl);
+                    alert('Failed to generate share link. Please try again.');
                 }
             });
 
@@ -2107,15 +2019,16 @@
              *
              * @returns {Promise<void>} Resolves after the download is triggered.
              */
-            // Restore dashboard from URL hash when the page is opened via a share link
+            // Restore dashboard from ?s=TOKEN when the page is opened via a share link
             (async () => {
-                const hash = window.location.hash.slice(1);
-                if (hash && (hash[0] === 'z' || hash[0] === 'j')) {
+                const token = new URLSearchParams(window.location.search).get('s');
+                if (token && /^[0-9a-f]{32}$/.test(token)) {
                     try {
-                        const data = await decodeShareData(hash);
-                        renderDashboard(data);
+                        const res = await fetch(`/api/data/${token}`);
+                        if (!res.ok) throw new Error('Not found');
+                        renderDashboard(await res.json());
                     } catch (err) {
-                        console.error('[thread] Failed to restore shared dashboard:', err);
+                        console.error('[thread] Failed to load shared dashboard:', err);
                     }
                 }
             })();

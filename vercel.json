@@ -15,6 +15,14 @@
       "maxDuration": 10,
       "memory": 256,
       "includeFiles": "src/templates/**"
+    },
+    "api/save.ts": {
+      "maxDuration": 10,
+      "memory": 256
+    },
+    "api/data/[token].ts": {
+      "maxDuration": 10,
+      "memory": 256
     }
   },
   "crons": [
