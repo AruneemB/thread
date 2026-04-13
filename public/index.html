@@ -654,6 +654,82 @@
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
+
+        .help-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .help-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+            user-select: none;
+            margin-left: 6px;
+            flex-shrink: 0;
+        }
+
+        .help-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            width: 260px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+            padding: 12px 14px;
+            z-index: 100;
+            text-align: left;
+        }
+
+        .help-wrap:hover .help-tooltip {
+            display: block;
+        }
+
+        .help-tooltip-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .help-tooltip ol {
+            padding-left: 14px;
+            margin: 0;
+        }
+
+        .help-tooltip li {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .help-tooltip li + li {
+            margin-top: 1px;
+        }
+
+        .help-tooltip-note {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border);
+        }
     </style>
 </head>
 <body>
@@ -743,7 +819,23 @@
         <div class="privacy-notice">🔒 Your data <strong>never leaves this page</strong> — all processing happens in your browser</div>
 
         <div class="instructions">
-            <h2>How it works:</h2>
+            <h2 style="display:inline-flex;align-items:center;">How it works:
+                <span class="help-wrap">
+                    <span class="help-icon">?</span>
+                    <span class="help-tooltip">
+                        <div class="help-tooltip-title">How to export your chat history</div>
+                        <ol>
+                            <li>Open <strong>Telegram Desktop</strong></li>
+                            <li>Navigate to the group chat</li>
+                            <li>Click the <strong>⋮ menu</strong> (top-right)</li>
+                            <li>Select <strong>Export chat history</strong></li>
+                            <li>Set format to <strong>Machine-readable JSON</strong></li>
+                            <li>Choose a date range and click <strong>Export</strong></li>
+                        </ol>
+                        <div class="help-tooltip-note">Requires Telegram Desktop — not available on mobile.</div>
+                    </span>
+                </span>
+            </h2>
             <ol>
                 <li>Export chat from Telegram Desktop</li>
                 <li>Drop result.json here</li>
@@ -803,6 +895,7 @@
                 <h2 class="dashboard-title">Chat Stats</h2>
             </div>
             <div class="header-right">
+                <button id="copy-link-btn" class="action-button secondary no-export" aria-label="Copy link to this page">Copy Link</button>
                 <button id="download-btn" class="action-button no-export" aria-label="Download dashboard as PNG">Download as PNG</button>
                 <button id="reset-btn" class="action-button secondary no-export" aria-label="Return to upload page">Try Another File</button>
             </div>
@@ -1054,6 +1147,19 @@
             document.getElementById('demo-btn').addEventListener('click', () => {
                 const demoData = generateDemoData();
                 renderDashboard(demoData);
+            });
+
+            // Wire copy-link button: click → copy page URL → brief "Copied!" feedback
+            const copyLinkBtn = document.getElementById('copy-link-btn');
+            copyLinkBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    const orig = copyLinkBtn.textContent;
+                    copyLinkBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyLinkBtn.textContent = orig; }, 1500);
+                } catch {
+                    prompt('Copy this link:', window.location.href);
+                }
             });
 
             // Wire download button: click → generatePNG → blob → file download
