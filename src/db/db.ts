@@ -216,6 +216,16 @@ export async function saveSnapshot(token: string, data: DashboardData): Promise<
   });
 }
 
+export async function getSnapshot(token: string): Promise<DashboardData | null> {
+  const client = await getDb();
+  const result = await client.execute({
+    sql: `SELECT data FROM snapshots WHERE token = ?`,
+    args: [token],
+  });
+  if (result.rows.length === 0) return null;
+  return JSON.parse(result.rows[0].data as string) as DashboardData;
+}
+
 // --- Exports ---
 
 export async function getDbInstance(): Promise<Client> {
