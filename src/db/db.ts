@@ -72,6 +72,14 @@ async function initSchema(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_messages_chat_date
       ON messages(chat_id, date)
   `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS snapshots (
+      token      TEXT PRIMARY KEY,
+      data       TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
 }
 
 // --- Client Connection ---
