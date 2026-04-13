@@ -23,6 +23,11 @@
     "api/data/[token].ts": {
       "maxDuration": 10,
       "memory": 256
+    },
+    "api/chat.ts": {
+      "maxDuration": 20,
+      "memory": 512,
+      "includeFiles": "README.md;docs-thread/**"
     }
   },
   "crons": [

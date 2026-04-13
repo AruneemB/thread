@@ -27,10 +27,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Using gemini-1.5-flash as it is more stable and widely available
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
     // 1. Gather docs context
     let context = "You are the Thread Assistant, an expert AI for the 'Thread' project. ";
     context += "Thread visualizes Telegram group activity as GitHub-style heatmaps. ";
@@ -55,6 +51,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Using gemini-1.5-flash as it is more stable and widely available
+    // systemInstruction MUST be passed here for @google/generative-ai
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: context 
+    });
+
     // 2. Format chat history
     const chatHistory = (history || []).slice(-MAX_HISTORY_MSGS).map((h: any) => ({
       role: h.role === "assistant" ? "model" : "user",
@@ -64,7 +68,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 3. Generate response
     const chat = model.startChat({
       history: chatHistory,
-      systemInstruction: context,
     });
 
     const result = await chat.sendMessage(message);
