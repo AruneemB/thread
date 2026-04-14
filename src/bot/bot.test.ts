@@ -10,6 +10,7 @@ vi.mock("grammy", () => {
   }
   class Composer {
     command = vi.fn();
+    callbackQuery = vi.fn();
   }
   class InputFile {
     constructor(public data: Buffer, public filename: string) {}
@@ -25,6 +26,10 @@ vi.mock("../commands/stats.js", () => ({
 
 vi.mock("../commands/mystats.js", () => ({
   mystatsComposer: { middleware: vi.fn() },
+}));
+
+vi.mock("../commands/tldr.js", () => ({
+  tldrComposer: { middleware: vi.fn() },
 }));
 
 vi.mock("../db/db.js", () => ({

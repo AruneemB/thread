@@ -15,6 +15,8 @@ vi.mock("../db/db.js", () => ({
   getMemberByUsername: vi.fn(),
   getCooldown: vi.fn(),
   setCooldown: vi.fn(),
+  generateSnapshotToken: vi.fn(),
+  saveSnapshot: vi.fn(),
 }));
 
 vi.mock("grammy", () => {
@@ -35,7 +37,7 @@ vi.mock("grammy", () => {
 
 import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
 import { renderer } from "../renderer/renderer.js";
-import { getMemberByUsername, getCooldown, setCooldown } from "../db/db.js";
+import { getMemberByUsername, getCooldown, setCooldown, generateSnapshotToken, saveSnapshot } from "../db/db.js";
 import { statsComposer, getCooldownMs, buildCells, buildMemberData, avatarColorFromId, initialsFrom } from "./stats.js";
 
 const mockGetGroupSummary = getGroupSummary as ReturnType<typeof vi.fn>;
@@ -46,6 +48,8 @@ const mockRender = renderer.render as ReturnType<typeof vi.fn>;
 const mockGetMemberByUsername = getMemberByUsername as ReturnType<typeof vi.fn>;
 const mockGetCooldown = getCooldown as ReturnType<typeof vi.fn>;
 const mockSetCooldown = setCooldown as ReturnType<typeof vi.fn>;
+const mockGenerateSnapshotToken = generateSnapshotToken as ReturnType<typeof vi.fn>;
+const mockSaveSnapshot = saveSnapshot as ReturnType<typeof vi.fn>;
 
 function makeCtx(overrides: Record<string, unknown> = {}) {
   return {
@@ -82,6 +86,8 @@ function setupDefaultMocks(memberCount = 2) {
   mockRender.mockResolvedValue(Buffer.from("fake-png"));
   mockGetCooldown.mockResolvedValue(null);
   mockSetCooldown.mockResolvedValue(undefined);
+  mockGenerateSnapshotToken.mockReturnValue("fake-token");
+  mockSaveSnapshot.mockResolvedValue(undefined);
 }
 
 describe("/stats command", () => {
@@ -241,7 +247,7 @@ describe("/stats command", () => {
       const ctx = makeCtx({ chat: { id: -100123, title: "Cool Group" } });
       await getHandler()(ctx);
       const opts = ctx.replyWithPhoto.mock.calls[0][1];
-      expect(opts.caption).toBe("Thread — activity report for Cool Group");
+      expect(opts.caption).toContain("Thread — activity report for Cool Group");
     });
   });
 
@@ -452,6 +458,13 @@ describe("/threadhelp command", () => {
     await getHandler("threadhelp")(ctx);
     const text = ctx.reply.mock.calls[0][0] as string;
     expect(text).toContain("/mystats");
+  });
+
+  it("response contains /tldr", async () => {
+    const ctx = makeCtx();
+    await getHandler("threadhelp")(ctx);
+    const text = ctx.reply.mock.calls[0][0] as string;
+    expect(text).toContain("/tldr");
   });
 
   it("response contains /threadhelp", async () => {

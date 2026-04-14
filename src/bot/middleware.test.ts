@@ -14,7 +14,7 @@ function createFakeBot() {
   const handlers: Record<string, Function> = {};
   return {
     on: vi.fn((event: string, handler: Function) => { handlers[event] = handler; }),
-    _trigger: async (event: string, ctx: unknown) => { await handlers[event]?.(ctx); },
+    _trigger: async (event: string, ctx: unknown) => { await handlers[event]?.(ctx, () => {}); },
   };
 }
 
