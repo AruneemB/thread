@@ -927,7 +927,13 @@
         </button>
     </div>
     <header class="page-header">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 85" aria-label="Thread">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 85" aria-label="Thread" class="logo">
+            <style>
+                .wordmark { fill: #1a1a1a; }
+                @media (prefers-color-scheme: dark) {
+                    .wordmark { fill: #f0f0f0; }
+                }
+            </style>
             <!-- Contribution grid (5 cols × 7 rows, 10×10 cells, 2.5 gap) -->
             <g>
                 <!-- Mon -->
@@ -979,6 +985,8 @@
                 <rect x="37.5" y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="50" y="75" width="10" height="10" rx="2.5" fill="#0f6e56"/>
             </g>
+            <!-- Wordmark -->
+            <text class="wordmark" x="76" y="57" font-family="'Iowan Old Style',Charter,'Sitka Display','Cambria',serif" font-size="52" font-weight="700" letter-spacing="0.5">Thread</text>
         </svg>
         <h1>Visualize Telegram Group Activity</h1>
         <p class="subtitle">GitHub-style contribution heatmaps</p>
