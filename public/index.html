@@ -306,7 +306,7 @@
             justify-content: center;
             gap: 0;
             margin: 0 auto 2.5rem;
-            max-width: 400px;
+            max-width: 600px;
         }
 
         .metric-item {
@@ -1001,6 +1001,11 @@
             <span class="metric-value" id="metric-messages">—</span>
             <span class="metric-label">messages tracked</span>
         </div>
+        <div class="metric-divider" aria-hidden="true"></div>
+        <div class="metric-item">
+            <span class="metric-value" id="metric-commands">—</span>
+            <span class="metric-label">commands used</span>
+        </div>
     </div>
     <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop JSON file or export folder here or tap to browse">
         <p>Drop JSON or export folder here or click to browse</p>
@@ -1195,6 +1200,7 @@
             (function loadMetrics() {
                 var groupsEl   = document.getElementById('metric-groups');
                 var messagesEl = document.getElementById('metric-messages');
+                var commandsEl = document.getElementById('metric-commands');
 
                 function countUp(el, target, duration) {
                     var start = performance.now();
@@ -1216,6 +1222,7 @@
                     .then(function(data) {
                         if (typeof data.groups   === 'number') countUp(groupsEl,   data.groups,   1200);
                         if (typeof data.messages === 'number') countUp(messagesEl, data.messages, 1600);
+                        if (typeof data.commands_called === 'number') countUp(commandsEl, data.commands_called, 2000);
                     })
                     .catch(function() {
                         // Leave em-dash placeholders in place
@@ -1415,6 +1422,15 @@
                     const processedData = processExport(jsonData);
                     setProcessingState(false);
                     renderDashboard(processedData);
+
+                    // Track JSON upload metrics
+                    if (jsonData.messages && jsonData.messages.length > 0) {
+                        fetch('/api/track', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: 'json_upload', count: jsonData.messages.length })
+                        }).catch(err => console.error('[thread] Failed to track metric:', err));
+                    }
 
                 } catch (error) {
                     console.error('[thread] Upload error:', error);

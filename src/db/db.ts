@@ -82,6 +82,13 @@ async function initSchema(client: Client): Promise<void> {
       created_at TEXT NOT NULL
     )
   `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS global_metrics (
+      key   TEXT PRIMARY KEY,
+      value INTEGER NOT NULL DEFAULT 0
+    )
+  `);
 }
 
 // --- Client Connection ---
@@ -117,6 +124,28 @@ async function getDb(): Promise<Client> {
 }
 
 // --- Data Access Functions ---
+
+export async function incrementMetric(key: string, amount: number = 1): Promise<void> {
+  const client = await getDb();
+  await client.execute({
+    sql: `
+      INSERT INTO global_metrics (key, value)
+      VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = value + excluded.value
+    `,
+    args: [key, amount],
+  });
+}
+
+export async function getGlobalMetrics(): Promise<Record<string, number>> {
+  const client = await getDb();
+  const result = await client.execute("SELECT key, value FROM global_metrics");
+  const metrics: Record<string, number> = {};
+  for (const row of result.rows) {
+    metrics[row.key as string] = row.value as number;
+  }
+  return metrics;
+}
 
 export async function upsertMember(member: Member): Promise<ResultSet> {
   const parsed = MemberSchema.parse(member);

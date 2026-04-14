@@ -5,6 +5,7 @@ import { mystatsComposer } from "../commands/mystats.js";
 import { tldrComposer } from "../commands/tldr.js";
 import { summonComposer } from "../commands/summon.js";
 import { logger } from "../utils/logger.js";
+import { incrementMetric } from "../db/db.js";
 
 export const _logger = logger.child({ module: "bot" });
 
@@ -15,6 +16,17 @@ if (!token) {
 _logger.info("Bot token loaded");
 
 export const bot = new Bot(token);
+
+// Track command usage
+bot.use(async (ctx, next) => {
+  if (ctx.message?.text?.startsWith("/")) {
+    incrementMetric("bot_commands_called", 1).catch(err => 
+      _logger.error({ err }, "Failed to increment bot_commands_called metric")
+    );
+  }
+  await next();
+});
+
 registerMessageHandler(bot, _logger);
 bot.use(statsComposer);
 bot.use(mystatsComposer);
