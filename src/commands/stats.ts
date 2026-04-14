@@ -250,6 +250,7 @@ statsComposer.command("threadhelp", async (ctx) => {
       `/stats @username — View a single member's activity card\n` +
       `/mystats — Get your personal stats sent via DM\n` +
       `/tldr — High-level summary and features\n` +
+      `/summon — Summon all administrators in this group\n` +
       `/threadhelp — Show this help message`,
     );
     log.info({ chat_id: ctx.chat.id }, "threadhelp reply sent");
