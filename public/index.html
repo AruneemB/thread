@@ -994,9 +994,9 @@
             <span class="metric-label">messages tracked</span>
         </div>
     </div>
-    <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop JSON file here or tap to browse">
-        <p>Drop JSON here or click to browse files</p>
-        <input type="file" accept=".json" id="file-input" style="display: none; pointer-events: none;">
+    <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop JSON file or export folder here or tap to browse">
+        <p>Drop JSON or export folder here or click to browse</p>
+        <input type="file" id="file-input" style="display: none; pointer-events: none;" webkitdirectory directory multiple>
     </div>
     <div id="error-msg" class="error-message" role="status" aria-live="polite" style="display: none;"></div>
     <div id="loading-spinner" class="spinner" style="display: none;">Processing...</div>
@@ -1246,224 +1246,203 @@
                 }
             });
 
-            uploadZone.addEventListener('drop', (event) => {
+            /**
+             * Recursively traverses a FileSystemEntry tree (from drag-and-drop)
+             * and returns a flat array of File objects.
+             */
+            async function traverseFileTree(item, path = '') {
+                return new Promise((resolve) => {
+                    if (item.isFile) {
+                        item.file((file) => {
+                            resolve([file]);
+                        });
+                    } else if (item.isDirectory) {
+                        const dirReader = item.createReader();
+                        let allEntries = [];
+                        
+                        const readEntries = () => {
+                            dirReader.readEntries(async (entries) => {
+                                if (entries.length > 0) {
+                                    allEntries = allEntries.concat(entries);
+                                    readEntries();
+                                } else {
+                                    const results = await Promise.all(
+                                        allEntries.map(entry => traverseFileTree(entry, path + item.name + "/"))
+                                    );
+                                    resolve(results.flat());
+                                }
+                            });
+                        };
+                        readEntries();
+                    } else {
+                        resolve([]);
+                    }
+                });
+            }
+
+            /**
+             * Parses a collection of Telegram export HTML files using DOMParser.
+             * Returns a synthesized JSON-like object compatible with processExport.
+             */
+            async function parseHtmlFiles(htmlFiles) {
+                // Sort files by name: messages.html, messages2.html, ...
+                const sortedFiles = [...htmlFiles].sort((a, b) => {
+                    const getNum = (name) => {
+                        const m = name.match(/messages(\d+)\.html/);
+                        return m ? parseInt(m[1], 10) : 1;
+                    };
+                    return getNum(a.name) - getNum(b.name);
+                });
+
+                const messages = [];
+                let chatName = 'Chat Stats';
+                let lastSenderName = 'Unknown';
+                let lastSenderId = 'user_unknown';
+
+                // Simple hash for synthetic IDs
+                const hashString = (str) => {
+                    let hash = 0;
+                    for (let i = 0; i < str.length; i++) {
+                        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+                    return 'user_' + Math.abs(hash).toString(16);
+                };
+
+                for (const file of sortedFiles) {
+                    const text = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsText(file);
+                    });
+
+                    const doc = new DOMParser().parseFromString(text, 'text/html');
+                    
+                    // Capture chat name from the first file
+                    if (chatName === 'Chat Stats') {
+                        const header = doc.querySelector('.page_header .text');
+                        if (header) chatName = header.textContent.trim();
+                    }
+
+                    const msgNodes = doc.querySelectorAll('div.message.default');
+                    msgNodes.forEach(node => {
+                        const fromNode = node.querySelector('.from_name');
+                        if (fromNode) {
+                            lastSenderName = fromNode.textContent.trim();
+                            lastSenderId = hashString(lastSenderName);
+                        } else if (node.classList.contains('joined')) {
+                            // Reuse lastSenderName for joined messages
+                        } else {
+                            // Likely a service message or anonymous
+                            return;
+                        }
+
+                        const dateNode = node.querySelector('.pull_right.date');
+                        if (!dateNode) return;
+
+                        // Format: "14.04.2026 15:42:32"
+                        const rawDate = dateNode.getAttribute('title');
+                        if (!rawDate) return;
+
+                        const [d, t] = rawDate.split(' ');
+                        const [day, month, year] = d.split('.');
+                        const isoDate = `${year}-${month}-${day}T${t}`;
+
+                        messages.push({
+                            type: 'message',
+                            from: lastSenderName,
+                            from_id: lastSenderId,
+                            date: isoDate
+                        });
+                    });
+                }
+
+                if (messages.length === 0) {
+                    throw new Error('No messages found in HTML files.');
+                }
+
+                return {
+                    name: chatName,
+                    messages: messages
+                };
+            }
+
+            /**
+             * Core entry point for handling uploads (drag-and-drop or browser selection).
+             * Identifies if the payload is a single JSON or a directory of HTML files.
+             */
+            async function handleUpload(files) {
+                hideError();
+                
+                try {
+                    setProcessingState(true);
+                    let jsonData = null;
+
+                    // Check for result.json
+                    const jsonFile = files.find(f => f.name.toLowerCase() === 'result.json' || f.name.toLowerCase().endsWith('.json'));
+                    const htmlFiles = files.filter(f => f.name.toLowerCase().match(/^messages\d*\.html$/));
+
+                    if (jsonFile && files.length === 1) {
+                        if (loadingSpinner) loadingSpinner.textContent = 'Reading JSON…';
+                        const text = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => resolve(e.target.result);
+                            reader.onerror = () => reject(new Error('Failed to read JSON file.'));
+                            reader.readAsText(jsonFile);
+                        });
+                        jsonData = JSON.parse(text);
+                    } else if (htmlFiles.length > 0) {
+                        if (loadingSpinner) loadingSpinner.textContent = `Parsing ${htmlFiles.length} HTML files…`;
+                        jsonData = await parseHtmlFiles(htmlFiles);
+                    } else {
+                        throw new Error('Please upload either a result.json file or the folder containing messages.html files.');
+                    }
+
+                    const validation = validateTelegramExport(jsonData);
+                    if (!validation.valid) {
+                        showError(validation.error);
+                        setProcessingState(false);
+                        return;
+                    }
+
+                    const processedData = processExport(jsonData);
+                    setProcessingState(false);
+                    renderDashboard(processedData);
+
+                } catch (error) {
+                    console.error('[thread] Upload error:', error);
+                    showError(error.message || 'Failed to process upload.');
+                    setProcessingState(false);
+                }
+            }
+
+            // Replace the old handleFile function reference in listeners
+            uploadZone.addEventListener('drop', async (event) => {
                 event.preventDefault();
                 dragCounter = 0;
                 uploadZone.classList.remove('dragover');
-                const file = event.dataTransfer.files[0];
-                if (file) {
-                    handleFile(file);
+                
+                const items = event.dataTransfer.items;
+                if (items) {
+                    const entries = [];
+                    for (let i = 0; i < items.length; i++) {
+                        const entry = items[i].webkitGetAsEntry();
+                        if (entry) entries.push(entry);
+                    }
+                    const files = await Promise.all(entries.map(entry => traverseFileTree(entry)));
+                    handleUpload(files.flat());
+                } else {
+                    handleUpload(Array.from(event.dataTransfer.files));
                 }
             });
 
             fileInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    handleFile(file);
+                if (event.target.files.length > 0) {
+                    handleUpload(Array.from(event.target.files));
                 }
             });
 
             // State management
             let currentDashboardData = null;
-
-            /**
-             * Transitions the page to the landing/upload state (State 1).
-             * Hides the dashboard and restores the upload zone and page header.
-             * Clears any previously loaded file from the file input so the same
-             * file can be re-selected after navigating back.
-             */
-            function showLandingPage() {
-                document.getElementById('dashboard').style.display = 'none';
-                document.querySelector('.page-header').style.display = 'block';
-                document.getElementById('metrics-section').style.display = 'flex';
-                document.getElementById('upload-zone').style.display = 'block';
-                document.querySelector('.landing-footer').style.display = 'flex';
-                hideError();
-                fileInput.value = '';
-            }
-
-            /**
-             * Transitions the page to the dashboard state (State 2).
-             * Hides the upload zone and header, shows the rendered dashboard
-             * with a CSS fade-in animation. Forces a reflow to restart the
-             * animation on every call, even when navigating between exports.
-             *
-             * @param {Object} dashboardData - Processed result from processExport()
-             *   or generateDemoData(), containing members, name, and dateRange.
-             */
-            function showDashboard(dashboardData) {
-                currentDashboardData = dashboardData;
-                document.querySelector('.page-header').style.display = 'none';
-                document.getElementById('metrics-section').style.display = 'none';
-                document.getElementById('upload-zone').style.display = 'none';
-                document.querySelector('.landing-footer').style.display = 'none';
-                const dashboard = document.getElementById('dashboard');
-                dashboard.style.display = 'block';
-                dashboard.classList.remove('fade-in');
-                void dashboard.offsetWidth; // trigger reflow to restart animation
-                dashboard.classList.add('fade-in');
-            }
-
-            // Navigation event listeners
-            document.getElementById('reset-btn').addEventListener('click', () => {
-                showLandingPage();
-                currentDashboardData = null;
-            });
-
-            document.getElementById('dashboard-logo-btn').addEventListener('click', () => {
-                if (confirm('Return to upload page?')) {
-                    showLandingPage();
-                    currentDashboardData = null;
-                }
-            });
-
-            document.getElementById('demo-btn').addEventListener('click', () => {
-                const demoData = generateDemoData();
-                renderDashboard(demoData);
-            });
-
-            // Wire copy-link button: POST data to /api/save, copy the returned short URL
-            const copyLinkBtn = document.getElementById('copy-link-btn');
-            copyLinkBtn.addEventListener('click', async () => {
-                if (!currentDashboardData) return;
-                const orig = copyLinkBtn.textContent;
-                copyLinkBtn.textContent = 'Saving...';
-                copyLinkBtn.disabled = true;
-                try {
-                    const res = await fetch('/api/save', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(currentDashboardData)
-                    });
-                    if (!res.ok) throw new Error('Save failed');
-                    const { url } = await res.json();
-                    await navigator.clipboard.writeText(url).catch(() => prompt('Copy this link:', url));
-                    copyLinkBtn.textContent = 'Copied!';
-                    setTimeout(() => {
-                        copyLinkBtn.textContent = orig;
-                        copyLinkBtn.disabled = false;
-                    }, 1500);
-                } catch {
-                    copyLinkBtn.textContent = orig;
-                    copyLinkBtn.disabled = false;
-                    alert('Failed to generate share link. Please try again.');
-                }
-            });
-
-            // Wire download button: click → generatePNG → blob → file download
-            const downloadBtn = document.getElementById('download-btn');
-            downloadBtn.addEventListener('click', async () => {
-                const originalText = downloadBtn.textContent;
-                downloadBtn.textContent = 'Generating...';
-                downloadBtn.disabled = true;
-                try {
-                    await downloadPNG();
-                } catch (err) {
-                    console.error('PNG generation failed:', err);
-                    alert('Failed to generate PNG. Please try again.');
-                } finally {
-                    downloadBtn.textContent = originalText;
-                    downloadBtn.disabled = false;
-                }
-            });
-
-            document.querySelectorAll('input[name="sort"]').forEach(radio => {
-                radio.addEventListener('change', (e) => {
-                    if (currentDashboardData) {
-                        const sortedMembers = sortMembers(currentDashboardData.members, e.target.value);
-                        renderDashboard({
-                            ...currentDashboardData,
-                            members: sortedMembers
-                        });
-                    }
-                });
-            });
-
-            /**
-             * Enables or disables the upload UI during file processing.
-             * Prevents duplicate submissions while a file is being read or parsed.
-             *
-             * @param {boolean} active - true to show the loading spinner and
-             *   disable the upload zone and demo button; false to restore them.
-             */
-            function setProcessingState(active) {
-                const demoBtn = document.getElementById('demo-btn');
-                if (active) {
-                    uploadZone.setAttribute('disabled', '');
-                    demoBtn.setAttribute('disabled', '');
-                    loadingSpinner.style.display = 'flex';
-                } else {
-                    uploadZone.removeAttribute('disabled');
-                    demoBtn.removeAttribute('disabled');
-                    loadingSpinner.style.display = 'none';
-                }
-            }
-
-            /**
-             * Entry point for file processing after the user selects or drops a file.
-             * Reads the file as text via FileReader, validates the JSON structure,
-             * then delegates to processExport(). Uses two setTimeout(fn, 0) yields
-             * for large files (> 5 000 messages) so the browser can repaint the
-             * progress spinner before synchronous CPU work begins — preventing a
-             * frozen UI during processing.
-             *
-             * @param {File} file - A File object from an <input type="file"> or
-             *   a drag-and-drop DataTransfer event.
-             */
-            function handleFile(file) {
-                hideError();
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        const validation = validateTelegramExport(data);
-                        if (!validation.valid) {
-                            showError(validation.error);
-                            return;
-                        }
-
-                        const messageCount = Array.isArray(data.messages) ? data.messages.length : 0;
-                        const isLargeFile = messageCount > 5000;
-
-                        // Show message count in progress indicator for large files
-                        if (loadingSpinner) {
-                            loadingSpinner.textContent = isLargeFile
-                                ? `Processing ${messageCount.toLocaleString()} messages…`
-                                : 'Processing…';
-                        }
-
-                        setProcessingState(true);
-
-                        // Yield to event loop so the updated spinner text renders before
-                        // the synchronous processing work begins (prevents UI freeze).
-                        setTimeout(() => {
-                            try {
-                                const processedData = processExport(data);
-                                // For large files yield again before rendering so the
-                                // browser can paint any intermediate layout changes.
-                                if (isLargeFile) {
-                                    if (loadingSpinner) loadingSpinner.textContent = 'Rendering…';
-                                    setTimeout(() => {
-                                        setProcessingState(false);
-                                        renderDashboard(processedData);
-                                    }, 0);
-                                } else {
-                                    setProcessingState(false);
-                                    renderDashboard(processedData);
-                                }
-                            } catch (processError) {
-                                setProcessingState(false);
-                                showError(processError.message || 'Failed to process export.');
-                            }
-                        }, 50);
-
-                    } catch (error) {
-                        console.error('Error parsing JSON:', error);
-                        showError('Invalid JSON file format.');
-                    }
-                };
-                reader.readAsText(file);
-            }
 
             /**
              * Displays an inline error message inside the upload zone.
