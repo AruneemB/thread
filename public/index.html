@@ -300,6 +300,53 @@
             margin-top: 1rem;
         }
 
+        .metrics-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin: 0 auto 2.5rem;
+            max-width: 400px;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 2rem;
+            gap: 0.25rem;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--teal-500);
+            letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
+            min-width: 4ch;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .metric-divider {
+            width: 1px;
+            height: 2.5rem;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 480px) {
+            .metric-item { padding: 0 1.25rem; }
+            .metric-value { font-size: 1.375rem; }
+        }
+
         .instructions {
             margin-top: 3rem;
             text-align: left;
@@ -936,6 +983,17 @@
         <h1>Visualize Telegram Group Activity</h1>
         <p class="subtitle">GitHub-style contribution heatmaps</p>
     </header>
+    <div id="metrics-section" class="metrics-section" aria-label="Live usage statistics">
+        <div class="metric-item">
+            <span class="metric-value" id="metric-groups">—</span>
+            <span class="metric-label">groups visualized</span>
+        </div>
+        <div class="metric-divider" aria-hidden="true"></div>
+        <div class="metric-item">
+            <span class="metric-value" id="metric-messages">—</span>
+            <span class="metric-label">messages tracked</span>
+        </div>
+    </div>
     <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop JSON file here or tap to browse">
         <p>Drop JSON here or click to browse files</p>
         <input type="file" accept=".json" id="file-input" style="display: none; pointer-events: none;">
@@ -1125,6 +1183,37 @@
             const errorMsg = document.getElementById('error-msg');
             const loadingSpinner = document.getElementById('loading-spinner');
 
+            // Live metrics counter
+            (function loadMetrics() {
+                var groupsEl   = document.getElementById('metric-groups');
+                var messagesEl = document.getElementById('metric-messages');
+
+                function countUp(el, target, duration) {
+                    var start = performance.now();
+                    function step(now) {
+                        var elapsed  = now - start;
+                        var progress = Math.min(elapsed / duration, 1);
+                        var eased    = 1 - Math.pow(1 - progress, 3);
+                        el.textContent = Math.round(eased * target).toLocaleString();
+                        if (progress < 1) requestAnimationFrame(step);
+                    }
+                    requestAnimationFrame(step);
+                }
+
+                fetch('/api/metrics')
+                    .then(function(res) {
+                        if (!res.ok) throw new Error('metrics');
+                        return res.json();
+                    })
+                    .then(function(data) {
+                        if (typeof data.groups   === 'number') countUp(groupsEl,   data.groups,   1200);
+                        if (typeof data.messages === 'number') countUp(messagesEl, data.messages, 1600);
+                    })
+                    .catch(function() {
+                        // Leave em-dash placeholders in place
+                    });
+            }());
+
             // Click or Enter/Space to browse
             uploadZone.addEventListener('click', () => {
                 fileInput.click();
@@ -1186,6 +1275,7 @@
             function showLandingPage() {
                 document.getElementById('dashboard').style.display = 'none';
                 document.querySelector('.page-header').style.display = 'block';
+                document.getElementById('metrics-section').style.display = 'flex';
                 document.getElementById('upload-zone').style.display = 'block';
                 document.querySelector('.landing-footer').style.display = 'flex';
                 hideError();
@@ -1204,6 +1294,7 @@
             function showDashboard(dashboardData) {
                 currentDashboardData = dashboardData;
                 document.querySelector('.page-header').style.display = 'none';
+                document.getElementById('metrics-section').style.display = 'none';
                 document.getElementById('upload-zone').style.display = 'none';
                 document.querySelector('.landing-footer').style.display = 'none';
                 const dashboard = document.getElementById('dashboard');
