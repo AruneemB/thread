@@ -1445,6 +1445,139 @@
             let currentDashboardData = null;
 
             /**
+             * Transitions the page to the landing/upload state (State 1).
+             * Hides the dashboard and restores the upload zone and page header.
+             * Clears any previously loaded file from the file input so the same
+             * file can be re-selected after navigating back.
+             */
+            function showLandingPage() {
+                document.getElementById('dashboard').style.display = 'none';
+                document.querySelector('.page-header').style.display = 'block';
+                document.getElementById('metrics-section').style.display = 'flex';
+                document.getElementById('upload-zone').style.display = 'block';
+                document.querySelector('.landing-footer').style.display = 'flex';
+                hideError();
+                fileInput.value = '';
+            }
+
+            /**
+             * Transitions the page to the dashboard state (State 2).
+             * Hides the upload zone and header, shows the rendered dashboard
+             * with a CSS fade-in animation. Forces a reflow to restart the
+             * animation on every call, even when navigating between exports.
+             *
+             * @param {Object} dashboardData - Processed result from processExport()
+             *   or generateDemoData(), containing members, name, and dateRange.
+             */
+            function showDashboard(dashboardData) {
+                currentDashboardData = dashboardData;
+                document.querySelector('.page-header').style.display = 'none';
+                document.getElementById('metrics-section').style.display = 'none';
+                document.getElementById('upload-zone').style.display = 'none';
+                document.querySelector('.landing-footer').style.display = 'none';
+                const dashboard = document.getElementById('dashboard');
+                dashboard.style.display = 'block';
+                dashboard.classList.remove('fade-in');
+                void dashboard.offsetWidth; // trigger reflow to restart animation
+                dashboard.classList.add('fade-in');
+            }
+
+            // Navigation event listeners
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                showLandingPage();
+                currentDashboardData = null;
+            });
+
+            document.getElementById('dashboard-logo-btn').addEventListener('click', () => {
+                if (confirm('Return to upload page?')) {
+                    showLandingPage();
+                    currentDashboardData = null;
+                }
+            });
+
+            document.getElementById('demo-btn').addEventListener('click', () => {
+                const demoData = generateDemoData();
+                renderDashboard(demoData);
+            });
+
+            // Wire copy-link button: POST data to /api/save, copy the returned short URL
+            const copyLinkBtn = document.getElementById('copy-link-btn');
+            copyLinkBtn.addEventListener('click', async () => {
+                if (!currentDashboardData) return;
+                const orig = copyLinkBtn.textContent;
+                copyLinkBtn.textContent = 'Saving...';
+                copyLinkBtn.disabled = true;
+                try {
+                    const res = await fetch('/api/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(currentDashboardData)
+                    });
+                    if (!res.ok) throw new Error('Save failed');
+                    const { url } = await res.json();
+                    await navigator.clipboard.writeText(url).catch(() => prompt('Copy this link:', url));
+                    copyLinkBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyLinkBtn.textContent = orig;
+                        copyLinkBtn.disabled = false;
+                    }, 1500);
+                } catch {
+                    copyLinkBtn.textContent = orig;
+                    copyLinkBtn.disabled = false;
+                    alert('Failed to generate share link. Please try again.');
+                }
+            });
+
+            // Wire download button: click → generatePNG → blob → file download
+            const downloadBtn = document.getElementById('download-btn');
+            downloadBtn.addEventListener('click', async () => {
+                const originalText = downloadBtn.textContent;
+                downloadBtn.textContent = 'Generating...';
+                downloadBtn.disabled = true;
+                try {
+                    await downloadPNG();
+                } catch (err) {
+                    console.error('PNG generation failed:', err);
+                    alert('Failed to generate PNG. Please try again.');
+                } finally {
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.disabled = false;
+                }
+            });
+
+            document.querySelectorAll('input[name="sort"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if (currentDashboardData) {
+                        const sortedMembers = sortMembers(currentDashboardData.members, e.target.value);
+                        renderDashboard({
+                            ...currentDashboardData,
+                            members: sortedMembers
+                        });
+                    }
+                });
+            });
+
+            /**
+             * Enables or disables the upload UI during file processing.
+             * Prevents duplicate submissions while a file is being read or parsed.
+             *
+             * @param {boolean} active - true to show the loading spinner and
+             *   disable the upload zone and demo button; false to restore them.
+             */
+            function setProcessingState(active) {
+                const demoBtn = document.getElementById('demo-btn');
+                if (active) {
+                    uploadZone.setAttribute('disabled', '');
+                    demoBtn.setAttribute('disabled', '');
+                    loadingSpinner.style.display = 'flex';
+                } else {
+                    uploadZone.removeAttribute('disabled');
+                    demoBtn.removeAttribute('disabled');
+                    loadingSpinner.style.display = 'none';
+                }
+            }
+
+            /**
              * Displays an inline error message inside the upload zone.
              * Prepends an SVG warning icon and applies the `.error` CSS class
              * to give the zone a red-tinted appearance.
