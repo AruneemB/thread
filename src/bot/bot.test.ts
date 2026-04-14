@@ -34,6 +34,7 @@ vi.mock("../commands/tldr.js", () => ({
 
 vi.mock("../db/db.js", () => ({
   closeDb: vi.fn(),
+  incrementMetric: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../renderer/renderer.js", () => ({
@@ -96,6 +97,31 @@ describe("Bot instance", () => {
     expect(typeof bot.stop).toBe("function");
     expect(typeof bot.on).toBe("function");
     expect(typeof bot.command).toBe("function");
+  });
+
+  it("registers command tracking middleware that increments metric on commands", async () => {
+    const { bot } = await import("./bot.js");
+    const { incrementMetric } = await import("../db/db.js");
+
+    // Get the first middleware registered (command tracking)
+    const trackingMiddleware = vi.mocked(bot.use).mock.calls[0][0] as any;
+    expect(typeof trackingMiddleware).toBe("function");
+
+    const next = vi.fn();
+
+    // Test with a command
+    const ctxCommand = { message: { text: "/stats" } } as any;
+    await trackingMiddleware(ctxCommand, next);
+    expect(incrementMetric).toHaveBeenCalledWith("bot_commands_called", 1);
+    expect(next).toHaveBeenCalled();
+
+    vi.clearAllMocks();
+
+    // Test with a non-command
+    const ctxMsg = { message: { text: "hello world" } } as any;
+    await trackingMiddleware(ctxMsg, next);
+    expect(incrementMetric).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
   });
 });
 

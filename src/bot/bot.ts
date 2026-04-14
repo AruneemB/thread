@@ -20,9 +20,11 @@ export const bot = new Bot(token);
 // Track command usage
 bot.use(async (ctx, next) => {
   if (ctx.message?.text?.startsWith("/")) {
-    incrementMetric("bot_commands_called", 1).catch(err => 
-      _logger.error({ err }, "Failed to increment bot_commands_called metric")
-    );
+    try {
+      await incrementMetric("bot_commands_called", 1);
+    } catch (err) {
+      _logger.error({ err }, "Failed to increment bot_commands_called metric");
+    }
   }
   await next();
 });
