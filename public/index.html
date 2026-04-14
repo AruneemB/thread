@@ -166,14 +166,14 @@
         }
 
         .page-header svg {
-            width: 360px;
+            width: 80px;
             height: auto;
             margin-bottom: 2rem;
         }
 
         @media (max-width: 768px) {
             .page-header { padding: 3rem 0; }
-            .page-header svg { width: 280px; }
+            .page-header svg { width: 64px; }
 
             .dashboard-header {
                 flex-direction: column;
@@ -880,18 +880,7 @@
         </button>
     </div>
     <header class="page-header">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 85">
-            <style>
-                .wordmark { fill: #1a1a1a; }
-                @media (prefers-color-scheme: dark) {
-                    .wordmark { fill: #f0f0f0; }
-                }
-            </style>
-            <!--
-                Thread logo — contribution grid with a diagonal "thread" of
-                darkening commits, plus wordmark.
-            -->
-
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 85" aria-label="Thread">
             <!-- Contribution grid (5 cols × 7 rows, 10×10 cells, 2.5 gap) -->
             <g>
                 <!-- Mon -->
@@ -943,11 +932,6 @@
                 <rect x="37.5" y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                 <rect x="50" y="75" width="10" height="10" rx="2.5" fill="#0f6e56"/>
             </g>
-
-            <!-- Wordmark -->
-            <text class="wordmark" x="76" y="57"
-                  font-family="'Iowan Old Style',Charter,'Sitka Display','Cambria',serif"
-                  font-size="52" font-weight="700" letter-spacing="0.5">Thread</text>
         </svg>
         <h1>Visualize Telegram Group Activity</h1>
         <p class="subtitle">GitHub-style contribution heatmaps</p>
@@ -994,13 +978,7 @@
     <div id="dashboard" class="dashboard" style="display: none;">
         <header class="dashboard-header">
             <div class="header-left">
-                <svg id="dashboard-logo-btn" class="dashboard-logo interactive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 85">
-                    <style>
-                        .wordmark { fill: #1a1a1a; }
-                        @media (prefers-color-scheme: dark) {
-                            .wordmark { fill: #f0f0f0; }
-                        }
-                    </style>
+                <svg id="dashboard-logo-btn" class="dashboard-logo interactive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 85" aria-label="Thread">
                     <g>
                         <rect x="0"    y="0"    width="10" height="10" rx="2.5" fill="#9fe1cb"/>
                         <rect x="12.5" y="0"    width="10" height="10" rx="2.5" fill="#9fe1cb"/>
@@ -1038,7 +1016,6 @@
                         <rect x="37.5" y="75"   width="10" height="10" rx="2.5" fill="#e1f5ee"/>
                         <rect x="50" y="75" width="10" height="10" rx="2.5" fill="#0f6e56"/>
                     </g>
-                    <text class="wordmark" x="76" y="57" font-family="'Iowan Old Style',Charter,'Sitka Display','Cambria',serif" font-size="52" font-weight="700" letter-spacing="0.5">Thread</text>
                 </svg>
                 <h2 class="dashboard-title">Chat Stats</h2>
             </div>
