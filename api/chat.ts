@@ -52,10 +52,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Using gemini-1.5-flash as it is more stable and widely available
+    // Using gemini-2.5-flash as the latest stable model
     // systemInstruction MUST be passed here for @google/generative-ai
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: context
     });
 
