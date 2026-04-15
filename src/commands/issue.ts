@@ -89,7 +89,7 @@ ${message}
     
     await ctx.reply(`✅ *Issue Created!* \n\n[#${issueData.number} - ${issueData.title}](${issueData.html_url})`, {
       parse_mode: "Markdown",
-      disable_web_page_preview: true
+      link_preview_options: { is_disabled: true }
     });
 
     log.info({ issue_number: issueData.number, chat_id: ctx.chat.id }, "GitHub issue created successfully");
