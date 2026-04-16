@@ -468,11 +468,14 @@
       var labels = [];
       var prevMonth = -1;
       for (var col = 0; col < 53; col++) {
-        var colDate = new Date(startMonday + col * 7 * 86400000);
-        var m = colDate.getUTCMonth();
-        if (m !== prevMonth) {
-          labels.push({ month: MONTH_NAMES[m], left: col * 13 });
-          prevMonth = m;
+        for (var day = 0; day < 7; day++) {
+          var dayDate = new Date(startMonday + (col * 7 + day) * 86400000);
+          var m = dayDate.getUTCMonth();
+          if (m !== prevMonth) {
+            labels.push({ month: MONTH_NAMES[m], left: col * 13 });
+            prevMonth = m;
+            break;
+          }
         }
       }
       return labels;
