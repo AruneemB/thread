@@ -4,6 +4,38 @@ import { logger } from "../utils/logger.js";
 
 const log = logger.child({ module: "issue" });
 
+const REQUIRED_LABELS = [
+  { name: "needs-triage", color: "e4e669", description: "Awaiting triage" },
+  { name: "user-reported", color: "0075ca", description: "Reported by a user via Telegram" },
+];
+
+export async function ensureGitHubLabels(): Promise<void> {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPO;
+  if (!token || !repo) return;
+
+  for (const label of REQUIRED_LABELS) {
+    const res = await fetch(`https://api.github.com/repos/${repo}/labels`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(label),
+    });
+
+    if (res.ok) {
+      log.info({ label: label.name }, "GitHub label created");
+    } else if (res.status === 422) {
+      log.info({ label: label.name }, "GitHub label already exists");
+    } else {
+      const err = await res.json();
+      log.error({ label: label.name, err }, "Failed to ensure GitHub label");
+    }
+  }
+}
+
 export const issueComposer = new Composer();
 
 issueComposer.command("issue", async (ctx) => {
@@ -75,7 +107,7 @@ ${message}
       body: JSON.stringify({
         title: aiData.title,
         body: issueBody,
-        labels: ["user-generated", "needs-triage"],
+        labels: ["needs-triage", "user-reported"],
       }),
     });
 

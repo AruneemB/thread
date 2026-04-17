@@ -136,7 +136,8 @@ describe("issue command", () => {
         method: "POST",
         headers: expect.objectContaining({
           "Authorization": "Bearer test-github-token"
-        })
+        }),
+        body: expect.stringContaining('"needs-triage"') && expect.stringContaining('"user-reported"'),
       })
     );
     expect(ctx.reply).toHaveBeenCalledWith(
