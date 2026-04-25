@@ -1839,6 +1839,19 @@
             }
 
             /**
+             * Returns a sorted array of calendar years that appear in dailyCounts,
+             * always including the current UTC year so the nav is never empty.
+             *
+             * @param {Object.<string, number>} dailyCounts - Map of ISO date → count.
+             * @returns {number[]} Ascending list of years, e.g. [2022, 2023, 2024, 2025].
+             */
+            function getAvailableYears(dailyCounts) {
+                const years = new Set([new Date().getUTCFullYear()]);
+                Object.keys(dailyCounts).forEach(d => years.add(parseInt(d.slice(0, 4), 10)));
+                return [...years].sort((a, b) => a - b);
+            }
+
+            /**
              * Derives a two-character uppercase initials string from a display name.
              * - Single-word names: first two characters of the word.
              * - Multi-word names: first character of the first and last words.
