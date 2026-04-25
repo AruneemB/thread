@@ -1746,23 +1746,65 @@
              * @returns {Array<{date: string, count: number, level: number, isFuture: boolean}>}
              *   Ordered chronologically from oldest to newest.
              */
-            function buildCells(dailyCounts) {
+            function buildCells(dailyCounts, year = null) {
                 const cells = [];
                 const today = getTodayISOString();
-                
+
+                if (year !== null) {
+                    // Year mode: Jan 1 – Dec 31 padded to Mon–Sun week boundaries.
+                    const jan1 = `${year}-01-01`;
+                    const dec31 = `${year}-12-31`;
+
+                    // Walk back to the Monday on or before Jan 1.
+                    let startDate = jan1;
+                    while (getDayOfWeek(startDate) !== 0) {
+                        startDate = subtractOneDay(startDate);
+                    }
+
+                    // Walk forward to the Sunday on or after Dec 31.
+                    let endDate = dec31;
+                    while (getDayOfWeek(endDate) !== 6) {
+                        endDate = addOneDay(endDate);
+                    }
+
+                    let cursor = startDate;
+                    while (cursor <= endDate) {
+                        const count = dailyCounts[cursor] || 0;
+                        const isOutOfYear = cursor < jan1 || cursor > dec31;
+                        const isFuture = cursor > today;
+                        let level = 0;
+                        if (!isFuture && !isOutOfYear) {
+                            if (count >= 20) level = 4;
+                            else if (count >= 10) level = 3;
+                            else if (count >= 5) level = 2;
+                            else if (count >= 1) level = 1;
+                        }
+                        cells.push({
+                            date: cursor,
+                            count,
+                            level,
+                            isFuture: isFuture || isOutOfYear,
+                            isOutOfYear
+                        });
+                        cursor = addOneDay(cursor);
+                    }
+                    return cells;
+                }
+
+                // Rolling mode: last 52 weeks ending on the current Sunday.
                 // Find current Sunday
                 let currentSunday = today;
                 while (getDayOfWeek(currentSunday) !== 6) {
                     currentSunday = addOneDay(currentSunday);
                 }
-                
+
                 // Start date is 370 days before current Sunday (total 371 days)
                 let cursor = currentSunday;
                 for (let i = 0; i < 370; i++) {
                     cursor = subtractOneDay(cursor);
                 }
                 const startDate = cursor;
-                
+
                 // Generate 371 dates
                 cursor = startDate;
                 for (let i = 0; i < 371; i++) {
@@ -1784,7 +1826,7 @@
                     });
                     cursor = addOneDay(cursor);
                 }
-                
+
                 return cells;
             }
 
