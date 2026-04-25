@@ -1894,6 +1894,48 @@
             }
 
             /**
+             * Computes message stats scoped to a single calendar year.
+             * Used to populate per-member card stats when a year view is active.
+             *
+             * @param {Object.<string, number>} dailyCounts - Full map of ISO date → count.
+             * @param {number} year - Four-digit calendar year, e.g. 2023.
+             * @returns {{ messages: number, activeDays: number, longestStreak: number, currentStreak: number }}
+             */
+            function computeYearStats(dailyCounts, year) {
+                const prefix = `${year}-`;
+                const yearCounts = {};
+                Object.keys(dailyCounts).forEach(d => {
+                    if (d.startsWith(prefix)) yearCounts[d] = dailyCounts[d];
+                });
+
+                const messages = Object.values(yearCounts).reduce((a, b) => a + b, 0);
+                const activeDays = Object.keys(yearCounts).filter(d => yearCounts[d] > 0).length;
+
+                // Longest consecutive run within the year
+                const sorted = Object.keys(yearCounts).filter(d => yearCounts[d] > 0).sort();
+                let longest = 0, run = 0;
+                for (let i = 0; i < sorted.length; i++) {
+                    if (i === 0 || sorted[i] === addOneDay(sorted[i - 1])) run++;
+                    else run = 1;
+                    if (run > longest) longest = run;
+                }
+
+                // Current streak only meaningful for the current year
+                const todayStr = getTodayISOString();
+                const todayYear = parseInt(todayStr.slice(0, 4), 10);
+                let currentStreak = 0;
+                if (year === todayYear) {
+                    let cursor = todayStr;
+                    while (yearCounts[cursor] && yearCounts[cursor] > 0) {
+                        currentStreak++;
+                        cursor = subtractOneDay(cursor);
+                    }
+                }
+
+                return { messages, activeDays, longestStreak: longest, currentStreak };
+            }
+
+            /**
              * Derives a two-character uppercase initials string from a display name.
              * - Single-word names: first two characters of the word.
              * - Multi-word names: first character of the first and last words.
