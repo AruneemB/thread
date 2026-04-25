@@ -1998,26 +1998,33 @@
              * Iterates over the first cell of each week column (every 7th cell)
              * and emits a label only when the UTC month changes, preventing
              * duplicate labels for months that span more than one column.
+             * When `year` is provided (a specific historical/future year view),
+             * January is labelled "Jan YYYY" so the year is always visible.
              *
              * @param {Array<{date: string}>} cells - Ordered cell array from buildCells().
+             * @param {number|null} [year=null] - Calendar year being displayed, or null for rolling view.
              * @returns {HTMLDivElement} A div.month-labels element ready to insert.
              */
-            function renderMonthLabels(cells) {
+            function renderMonthLabels(cells, year = null) {
                 const container = document.createElement('div');
                 container.className = 'month-labels';
-                
+
                 let lastMonth = -1;
                 for (let i = 0; i < cells.length; i += 7) {
                     const date = new Date(cells[i].date + 'T00:00:00Z');
                     const month = date.getUTCMonth();
                     if (month !== lastMonth) {
                         const span = document.createElement('span');
-                        span.textContent = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+                        if (year !== null && month === 0) {
+                            span.textContent = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+                        } else {
+                            span.textContent = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+                        }
                         container.appendChild(span);
                         lastMonth = month;
                     }
                 }
-                
+
                 return container;
             }
 
