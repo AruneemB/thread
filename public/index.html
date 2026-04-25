@@ -1622,6 +1622,39 @@
                 });
             });
 
+            // Delegated year-nav listener — one listener handles all member cards.
+            document.querySelector('.members-grid').addEventListener('click', e => {
+                const btn = e.target.closest('.year-prev, .year-next');
+                if (!btn || btn.disabled) return;
+                const nav = btn.closest('.year-nav');
+                if (!nav) return;
+                const memberId = nav.dataset.memberId;
+                const state = memberYearState.get(memberId);
+                if (!state) return;
+                const member = currentDashboardData && currentDashboardData.members.find(m => m.id === memberId);
+                if (!member) return;
+
+                if (btn.classList.contains('year-prev')) {
+                    if (state.idx === null) {
+                        // Rolling → last year in list
+                        state.idx = state.years.length - 1;
+                    } else if (state.idx > 0) {
+                        state.idx -= 1;
+                    }
+                } else {
+                    // year-next
+                    if (state.idx !== null && state.idx < state.years.length - 1) {
+                        state.idx += 1;
+                    } else {
+                        // Last year → Rolling
+                        state.idx = null;
+                    }
+                }
+
+                const year = state.idx !== null ? state.years[state.idx] : null;
+                updateMemberCardYear(member, year);
+            });
+
             /**
              * Enables or disables the upload UI during file processing.
              * Prevents duplicate submissions while a file is being read or parsed.
@@ -2278,6 +2311,10 @@
                 // elements rather than being set via innerHTML to keep the DOM
                 // surgery contained to a single parent per member.
                 function buildCard(member) {
+                    // Register year state for this member (rolling view by default).
+                    const years = getAvailableYears(member.dailyCounts);
+                    memberYearState.set(member.id, { years, idx: null });
+
                     const card = renderMemberCard(member);
                     const fragment = document.createDocumentFragment();
 
@@ -2288,6 +2325,13 @@
                     const monthLabels = renderMonthLabels(member.cells);
                     const labelsSlot = card.querySelector(`#month-labels-${member.id}`);
                     if (labelsSlot) labelsSlot.appendChild(monthLabels);
+
+                    // Set initial button states: prev enabled (years exist), next disabled (rolling is latest).
+                    const yearNav = card.querySelector('.year-nav');
+                    if (yearNav) {
+                        yearNav.querySelector('.year-prev').disabled = years.length === 0;
+                        yearNav.querySelector('.year-next').disabled = true;
+                    }
 
                     fragment.appendChild(card);
                     return fragment;
