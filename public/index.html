@@ -641,6 +641,47 @@
             border-color: var(--teal-100);
         }
 
+        /* Year navigation control on each member card */
+        .year-nav {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .year-prev,
+        .year-next {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            line-height: 1;
+            padding: 2px 6px;
+            color: var(--text-secondary);
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .year-prev:hover:not(:disabled),
+        .year-next:hover:not(:disabled) {
+            border-color: var(--teal-200);
+            color: var(--teal-900);
+        }
+
+        .year-prev:disabled,
+        .year-next:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .year-label {
+            min-width: 56px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--text);
+        }
+
         .dashboard-footer {
             margin-top: 4rem;
             padding: 2rem 0;
