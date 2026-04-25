@@ -2117,6 +2117,8 @@
             function renderCalendar(cells) {
                 const grid = document.createElement('div');
                 grid.className = 'calendar-grid';
+                const weeks = Math.ceil(cells.length / 7);
+                grid.style.gridTemplateColumns = `repeat(${weeks}, 10px)`;
                 
                 cells.forEach(cell => {
                     const cellEl = document.createElement('div');
