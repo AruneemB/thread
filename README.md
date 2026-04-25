@@ -69,8 +69,8 @@ The landing page is a standalone, zero-dependency HTML file that processes Teleg
 
 - **File upload**: drag-and-drop or click-to-browse a Telegram Desktop export (`.json`).
 - **Demo mode**: try the dashboard instantly with synthetic data — no upload required.
-- **Contribution graph**: GitHub-style 52-week activity heat-map per group member.
-- **Streak tracking**: current and all-time longest daily message streaks.
+- **Contribution graph**: GitHub-style activity heat-map per group member — defaults to a rolling 52-week view, with per-member year navigation (‹ / ›) to browse full calendar years.
+- **Streak tracking**: current and all-time longest daily message streaks, updated in-place when switching years.
 - **Sorting**: sort members by total messages, current streak, or longest streak.
 - **PNG export**: download the full dashboard as a high-DPI image via html2canvas.
 - **Share links**: the **Copy Link** button saves the current dashboard to the database and copies a short `/?s=TOKEN` URL to the clipboard. Anyone with the link can open the same dashboard without uploading a file.
