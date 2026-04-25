@@ -641,6 +641,47 @@
             border-color: var(--teal-100);
         }
 
+        /* Year navigation control on each member card */
+        .year-nav {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .year-prev,
+        .year-next {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            line-height: 1;
+            padding: 2px 6px;
+            color: var(--text-secondary);
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .year-prev:hover:not(:disabled),
+        .year-next:hover:not(:disabled) {
+            border-color: var(--teal-200);
+            color: var(--teal-900);
+        }
+
+        .year-prev:disabled,
+        .year-next:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .year-label {
+            min-width: 56px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--text);
+        }
+
         .dashboard-footer {
             margin-top: 4rem;
             padding: 2rem 0;
@@ -1581,6 +1622,39 @@
                 });
             });
 
+            // Delegated year-nav listener — one listener handles all member cards.
+            document.querySelector('.members-grid').addEventListener('click', e => {
+                const btn = e.target.closest('.year-prev, .year-next');
+                if (!btn || btn.disabled) return;
+                const nav = btn.closest('.year-nav');
+                if (!nav) return;
+                const memberId = nav.dataset.memberId;
+                const state = memberYearState.get(memberId);
+                if (!state) return;
+                const member = currentDashboardData && currentDashboardData.members.find(m => m.id === memberId);
+                if (!member) return;
+
+                if (btn.classList.contains('year-prev')) {
+                    if (state.idx === null) {
+                        // Rolling → last year in list
+                        state.idx = state.years.length - 1;
+                    } else if (state.idx > 0) {
+                        state.idx -= 1;
+                    }
+                } else {
+                    // year-next
+                    if (state.idx !== null && state.idx < state.years.length - 1) {
+                        state.idx += 1;
+                    } else {
+                        // Last year → Rolling
+                        state.idx = null;
+                    }
+                }
+
+                const year = state.idx !== null ? state.years[state.idx] : null;
+                updateMemberCardYear(member, year);
+            });
+
             /**
              * Enables or disables the upload UI during file processing.
              * Prevents duplicate submissions while a file is being read or parsed.
@@ -1746,23 +1820,65 @@
              * @returns {Array<{date: string, count: number, level: number, isFuture: boolean}>}
              *   Ordered chronologically from oldest to newest.
              */
-            function buildCells(dailyCounts) {
+            function buildCells(dailyCounts, year = null) {
                 const cells = [];
                 const today = getTodayISOString();
-                
+
+                if (year !== null) {
+                    // Year mode: Jan 1 – Dec 31 padded to Mon–Sun week boundaries.
+                    const jan1 = `${year}-01-01`;
+                    const dec31 = `${year}-12-31`;
+
+                    // Walk back to the Monday on or before Jan 1.
+                    let startDate = jan1;
+                    while (getDayOfWeek(startDate) !== 0) {
+                        startDate = subtractOneDay(startDate);
+                    }
+
+                    // Walk forward to the Sunday on or after Dec 31.
+                    let endDate = dec31;
+                    while (getDayOfWeek(endDate) !== 6) {
+                        endDate = addOneDay(endDate);
+                    }
+
+                    let cursor = startDate;
+                    while (cursor <= endDate) {
+                        const count = dailyCounts[cursor] || 0;
+                        const isOutOfYear = cursor < jan1 || cursor > dec31;
+                        const isFuture = cursor > today;
+                        let level = 0;
+                        if (!isFuture && !isOutOfYear) {
+                            if (count >= 20) level = 4;
+                            else if (count >= 10) level = 3;
+                            else if (count >= 5) level = 2;
+                            else if (count >= 1) level = 1;
+                        }
+                        cells.push({
+                            date: cursor,
+                            count,
+                            level,
+                            isFuture: isFuture || isOutOfYear,
+                            isOutOfYear
+                        });
+                        cursor = addOneDay(cursor);
+                    }
+                    return cells;
+                }
+
+                // Rolling mode: last 52 weeks ending on the current Sunday.
                 // Find current Sunday
                 let currentSunday = today;
                 while (getDayOfWeek(currentSunday) !== 6) {
                     currentSunday = addOneDay(currentSunday);
                 }
-                
+
                 // Start date is 370 days before current Sunday (total 371 days)
                 let cursor = currentSunday;
                 for (let i = 0; i < 370; i++) {
                     cursor = subtractOneDay(cursor);
                 }
                 const startDate = cursor;
-                
+
                 // Generate 371 dates
                 cursor = startDate;
                 for (let i = 0; i < 371; i++) {
@@ -1784,7 +1900,7 @@
                     });
                     cursor = addOneDay(cursor);
                 }
-                
+
                 return cells;
             }
 
@@ -1836,6 +1952,61 @@
                 }
 
                 return { current, longest };
+            }
+
+            /**
+             * Returns a sorted array of calendar years that appear in dailyCounts,
+             * always including the current UTC year so the nav is never empty.
+             *
+             * @param {Object.<string, number>} dailyCounts - Map of ISO date → count.
+             * @returns {number[]} Ascending list of years, e.g. [2022, 2023, 2024, 2025].
+             */
+            function getAvailableYears(dailyCounts) {
+                const years = new Set([new Date().getUTCFullYear()]);
+                Object.keys(dailyCounts).forEach(d => years.add(parseInt(d.slice(0, 4), 10)));
+                return [...years].sort((a, b) => a - b);
+            }
+
+            /**
+             * Computes message stats scoped to a single calendar year.
+             * Used to populate per-member card stats when a year view is active.
+             *
+             * @param {Object.<string, number>} dailyCounts - Full map of ISO date → count.
+             * @param {number} year - Four-digit calendar year, e.g. 2023.
+             * @returns {{ messages: number, activeDays: number, longestStreak: number, currentStreak: number }}
+             */
+            function computeYearStats(dailyCounts, year) {
+                const prefix = `${year}-`;
+                const yearCounts = {};
+                Object.keys(dailyCounts).forEach(d => {
+                    if (d.startsWith(prefix)) yearCounts[d] = dailyCounts[d];
+                });
+
+                const messages = Object.values(yearCounts).reduce((a, b) => a + b, 0);
+                const activeDays = Object.keys(yearCounts).filter(d => yearCounts[d] > 0).length;
+
+                // Longest consecutive run within the year
+                const sorted = Object.keys(yearCounts).filter(d => yearCounts[d] > 0).sort();
+                let longest = 0, run = 0;
+                for (let i = 0; i < sorted.length; i++) {
+                    if (i === 0 || sorted[i] === addOneDay(sorted[i - 1])) run++;
+                    else run = 1;
+                    if (run > longest) longest = run;
+                }
+
+                // Current streak only meaningful for the current year
+                const todayStr = getTodayISOString();
+                const todayYear = parseInt(todayStr.slice(0, 4), 10);
+                let currentStreak = 0;
+                if (year === todayYear) {
+                    let cursor = todayStr;
+                    while (yearCounts[cursor] && yearCounts[cursor] > 0) {
+                        currentStreak++;
+                        cursor = subtractOneDay(cursor);
+                    }
+                }
+
+                return { messages, activeDays, longestStreak: longest, currentStreak };
             }
 
             /**
@@ -1901,26 +2072,33 @@
              * Iterates over the first cell of each week column (every 7th cell)
              * and emits a label only when the UTC month changes, preventing
              * duplicate labels for months that span more than one column.
+             * When `year` is provided (a specific historical/future year view),
+             * January is labelled "Jan YYYY" so the year is always visible.
              *
              * @param {Array<{date: string}>} cells - Ordered cell array from buildCells().
+             * @param {number|null} [year=null] - Calendar year being displayed, or null for rolling view.
              * @returns {HTMLDivElement} A div.month-labels element ready to insert.
              */
-            function renderMonthLabels(cells) {
+            function renderMonthLabels(cells, year = null) {
                 const container = document.createElement('div');
                 container.className = 'month-labels';
-                
+
                 let lastMonth = -1;
                 for (let i = 0; i < cells.length; i += 7) {
                     const date = new Date(cells[i].date + 'T00:00:00Z');
                     const month = date.getUTCMonth();
                     if (month !== lastMonth) {
                         const span = document.createElement('span');
-                        span.textContent = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+                        if (year !== null && month === 0) {
+                            span.textContent = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+                        } else {
+                            span.textContent = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+                        }
                         container.appendChild(span);
                         lastMonth = month;
                     }
                 }
-                
+
                 return container;
             }
 
@@ -1939,6 +2117,8 @@
             function renderCalendar(cells) {
                 const grid = document.createElement('div');
                 grid.className = 'calendar-grid';
+                const weeks = Math.ceil(cells.length / 7);
+                grid.style.gridTemplateColumns = `repeat(${weeks}, 10px)`;
                 
                 cells.forEach(cell => {
                     const cellEl = document.createElement('div');
@@ -1963,24 +2143,24 @@
             }
 
             /**
-             * Builds the static HTML shell for a member card: avatar, name, total
-             * message count, streak badges, and empty slot elements that will be
-             * filled by renderDashboard() with the calendar grid and month labels.
-             * Using placeholder IDs avoids a second DOM query pass and keeps the
-             * calendar injection O(1) per card.
+             * Builds the static HTML shell for a member card: avatar, name, stat
+             * badges, year-nav control, and empty calendar slot elements that are
+             * filled by renderDashboard(). Stat elements carry unique IDs so that
+             * updateMemberCardYear() can update them in-place without rebuilding the
+             * card. The year-nav arrows are hidden from PNG exports via no-export.
              *
              * @param {{ id: string, name: string, color: string, initials: string,
              *           total: number, currentStreak: number, longestStreak: number,
              *           dailyCounts: Object.<string, number> }} member
-             * @returns {HTMLDivElement} A div.member-card with empty calendar slots.
+             * @returns {HTMLDivElement} A div.member-row with empty calendar slots.
              */
             function renderMemberCard(member) {
                 const row = document.createElement('div');
                 row.className = 'member-row';
-                
+
                 const totalFormatted = new Intl.NumberFormat().format(member.total);
-                const activeDays = Object.keys(member.dailyCounts).length;
-                
+                const activeDays = Object.keys(member.dailyCounts).filter(d => member.dailyCounts[d] > 0).length;
+
                 row.innerHTML = `
                     <div class="member-header">
                         <div class="member-info">
@@ -1989,15 +2169,15 @@
                         </div>
                         <div class="mstats">
                             <div class="mstat">
-                                <div class="mstat-val">${totalFormatted}</div>
-                                <div class="mstat-lbl">messages</div>
+                                <div class="mstat-val" id="stat-msg-${member.id}">${totalFormatted}</div>
+                                <div class="mstat-lbl" id="stat-msg-lbl-${member.id}">messages</div>
                             </div>
                             <div class="mstat">
-                                <div class="mstat-val">${member.currentStreak}d</div>
+                                <div class="mstat-val" id="stat-streak-${member.id}">${member.currentStreak}d</div>
                                 <div class="mstat-lbl">streak</div>
                             </div>
                             <div class="mstat">
-                                <div class="mstat-val">${member.longestStreak}d</div>
+                                <div class="mstat-val" id="stat-best-${member.id}">${member.longestStreak}d</div>
                                 <div class="mstat-lbl">best</div>
                             </div>
                         </div>
@@ -2016,12 +2196,17 @@
                         </div>
                     </div>
                     <div class="streak-bar">
-                        <div class="streak-pill ${member.currentStreak > 0 ? 's-cur' : ''}">🔥 ${member.currentStreak} day streak</div>
-                        <div class="streak-pill">Best: ${member.longestStreak} days</div>
-                        <div class="streak-pill">${activeDays} active days</div>
+                        <div class="streak-pill ${member.currentStreak > 0 ? 's-cur' : ''}" id="stat-streak-pill-${member.id}">🔥 ${member.currentStreak} day streak</div>
+                        <div class="streak-pill" id="stat-best-pill-${member.id}">Best: ${member.longestStreak} days</div>
+                        <div class="streak-pill" id="stat-active-${member.id}">${activeDays} active days</div>
+                        <div class="year-nav no-export" data-member-id="${member.id}">
+                            <button class="year-prev" aria-label="Previous year">&#8249;</button>
+                            <span class="year-label">Rolling</span>
+                            <button class="year-next" aria-label="Next year">&#8250;</button>
+                        </div>
                     </div>
                 `;
-                
+
                 return row;
             }
 
@@ -2039,9 +2224,84 @@
              *
              * @param {{ members: Array, name: string, dateRange: Object }} dashboardData
              */
+
+            // Per-member year state. Keyed by member.id.
+            // Each entry: { years: number[], idx: number|null }
+            // idx === null means the rolling 52-week view is active.
+            const memberYearState = new Map();
+
+            /**
+             * Switches a member card to display a specific calendar year (or the
+             * rolling view when year is null). Updates the calendar grid, month
+             * labels, stats, year-label text, and prev/next button disabled states.
+             *
+             * @param {{ id: string, dailyCounts: Object, total: number,
+             *           currentStreak: number, longestStreak: number }} member
+             * @param {number|null} year - Calendar year to show, or null for rolling.
+             */
+            function updateMemberCardYear(member, year) {
+                const cells = buildCells(member.dailyCounts, year);
+
+                // Swap calendar grid
+                const gridSlot = document.getElementById(`calendar-grid-${member.id}`);
+                if (gridSlot) {
+                    gridSlot.innerHTML = '';
+                    gridSlot.appendChild(renderCalendar(cells));
+                }
+
+                // Swap month labels
+                const labelsSlot = document.getElementById(`month-labels-${member.id}`);
+                if (labelsSlot) {
+                    labelsSlot.innerHTML = '';
+                    labelsSlot.appendChild(renderMonthLabels(cells, year));
+                }
+
+                // Compute stats for the selected view
+                let msgs, activeDays, longestStreak, currentStreak;
+                if (year === null) {
+                    msgs = member.total;
+                    activeDays = Object.keys(member.dailyCounts).filter(d => member.dailyCounts[d] > 0).length;
+                    longestStreak = member.longestStreak;
+                    currentStreak = member.currentStreak;
+                } else {
+                    ({ messages: msgs, activeDays, longestStreak, currentStreak } = computeYearStats(member.dailyCounts, year));
+                }
+
+                const fmtMsgs = new Intl.NumberFormat().format(msgs);
+
+                const msgVal = document.getElementById(`stat-msg-${member.id}`);
+                const msgLbl = document.getElementById(`stat-msg-lbl-${member.id}`);
+                const streakVal = document.getElementById(`stat-streak-${member.id}`);
+                const bestVal = document.getElementById(`stat-best-${member.id}`);
+                const streakPill = document.getElementById(`stat-streak-pill-${member.id}`);
+                const bestPill = document.getElementById(`stat-best-pill-${member.id}`);
+                const activePill = document.getElementById(`stat-active-${member.id}`);
+
+                if (msgVal) msgVal.textContent = fmtMsgs;
+                if (msgLbl) msgLbl.textContent = year !== null ? `in ${year}` : 'messages';
+                if (streakVal) streakVal.textContent = `${currentStreak}d`;
+                if (bestVal) bestVal.textContent = `${longestStreak}d`;
+                if (streakPill) {
+                    streakPill.textContent = `🔥 ${currentStreak} day streak`;
+                    streakPill.className = `streak-pill${currentStreak > 0 ? ' s-cur' : ''}`;
+                }
+                if (bestPill) bestPill.textContent = `Best: ${longestStreak} days`;
+                if (activePill) activePill.textContent = `${activeDays} active days`;
+
+                // Update year-label and button states
+                const state = memberYearState.get(member.id);
+                const yearNav = document.querySelector(`.year-nav[data-member-id="${member.id}"]`);
+                if (yearNav && state) {
+                    yearNav.querySelector('.year-label').textContent = year !== null ? String(year) : 'Rolling';
+                    yearNav.querySelector('.year-prev').disabled = (state.idx !== null && state.idx === 0);
+                    yearNav.querySelector('.year-next').disabled = (state.idx === null);
+                }
+            }
+
             function renderDashboard(dashboardData) {
                 const container = document.querySelector('.members-grid');
                 container.innerHTML = '';
+                memberYearState.clear();
 
                 if (dashboardData.name) {
                     document.querySelector('.dashboard-title').textContent = dashboardData.name;
@@ -2053,6 +2313,10 @@
                 // elements rather than being set via innerHTML to keep the DOM
                 // surgery contained to a single parent per member.
                 function buildCard(member) {
+                    // Register year state for this member (rolling view by default).
+                    const years = getAvailableYears(member.dailyCounts);
+                    memberYearState.set(member.id, { years, idx: null });
+
                     const card = renderMemberCard(member);
                     const fragment = document.createDocumentFragment();
 
@@ -2063,6 +2327,13 @@
                     const monthLabels = renderMonthLabels(member.cells);
                     const labelsSlot = card.querySelector(`#month-labels-${member.id}`);
                     if (labelsSlot) labelsSlot.appendChild(monthLabels);
+
+                    // Set initial button states: prev enabled (years exist), next disabled (rolling is latest).
+                    const yearNav = card.querySelector('.year-nav');
+                    if (yearNav) {
+                        yearNav.querySelector('.year-prev').disabled = years.length === 0;
+                        yearNav.querySelector('.year-next').disabled = true;
+                    }
 
                     fragment.appendChild(card);
                     return fragment;
@@ -2272,8 +2543,8 @@
                     const dailyCounts = {};
                     let cursor = today;
 
-                    // Generate 365 days of data
-                    for (let d = 0; d < 365; d++) {
+                    // Generate 3 years of data so the year-nav has multiple years to browse.
+                    for (let d = 0; d < 365 * 3; d++) {
                         // Seeded randomness for deterministic results
                         const seed = Math.abs(Math.sin(userIdx * 1000 + d)) * 100;
                         const hasActivity = (seed % 1) < 0.7; // 70% chance of activity
