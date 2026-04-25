@@ -2541,8 +2541,8 @@
                     const dailyCounts = {};
                     let cursor = today;
 
-                    // Generate 365 days of data
-                    for (let d = 0; d < 365; d++) {
+                    // Generate 3 years of data so the year-nav has multiple years to browse.
+                    for (let d = 0; d < 365 * 3; d++) {
                         // Seeded randomness for deterministic results
                         const seed = Math.abs(Math.sin(userIdx * 1000 + d)) * 100;
                         const hasActivity = (seed % 1) < 0.7; // 70% chance of activity
