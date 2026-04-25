@@ -2189,9 +2189,84 @@
              *
              * @param {{ members: Array, name: string, dateRange: Object }} dashboardData
              */
+
+            // Per-member year state. Keyed by member.id.
+            // Each entry: { years: number[], idx: number|null }
+            // idx === null means the rolling 52-week view is active.
+            const memberYearState = new Map();
+
+            /**
+             * Switches a member card to display a specific calendar year (or the
+             * rolling view when year is null). Updates the calendar grid, month
+             * labels, stats, year-label text, and prev/next button disabled states.
+             *
+             * @param {{ id: string, dailyCounts: Object, total: number,
+             *           currentStreak: number, longestStreak: number }} member
+             * @param {number|null} year - Calendar year to show, or null for rolling.
+             */
+            function updateMemberCardYear(member, year) {
+                const cells = buildCells(member.dailyCounts, year);
+
+                // Swap calendar grid
+                const gridSlot = document.getElementById(`calendar-grid-${member.id}`);
+                if (gridSlot) {
+                    gridSlot.innerHTML = '';
+                    gridSlot.appendChild(renderCalendar(cells));
+                }
+
+                // Swap month labels
+                const labelsSlot = document.getElementById(`month-labels-${member.id}`);
+                if (labelsSlot) {
+                    labelsSlot.innerHTML = '';
+                    labelsSlot.appendChild(renderMonthLabels(cells, year));
+                }
+
+                // Compute stats for the selected view
+                let msgs, activeDays, longestStreak, currentStreak;
+                if (year === null) {
+                    msgs = member.total;
+                    activeDays = Object.keys(member.dailyCounts).filter(d => member.dailyCounts[d] > 0).length;
+                    longestStreak = member.longestStreak;
+                    currentStreak = member.currentStreak;
+                } else {
+                    ({ messages: msgs, activeDays, longestStreak, currentStreak } = computeYearStats(member.dailyCounts, year));
+                }
+
+                const fmtMsgs = new Intl.NumberFormat().format(msgs);
+
+                const msgVal = document.getElementById(`stat-msg-${member.id}`);
+                const msgLbl = document.getElementById(`stat-msg-lbl-${member.id}`);
+                const streakVal = document.getElementById(`stat-streak-${member.id}`);
+                const bestVal = document.getElementById(`stat-best-${member.id}`);
+                const streakPill = document.getElementById(`stat-streak-pill-${member.id}`);
+                const bestPill = document.getElementById(`stat-best-pill-${member.id}`);
+                const activePill = document.getElementById(`stat-active-${member.id}`);
+
+                if (msgVal) msgVal.textContent = fmtMsgs;
+                if (msgLbl) msgLbl.textContent = year !== null ? `in ${year}` : 'messages';
+                if (streakVal) streakVal.textContent = `${currentStreak}d`;
+                if (bestVal) bestVal.textContent = `${longestStreak}d`;
+                if (streakPill) {
+                    streakPill.textContent = `🔥 ${currentStreak} day streak`;
+                    streakPill.className = `streak-pill${currentStreak > 0 ? ' s-cur' : ''}`;
+                }
+                if (bestPill) bestPill.textContent = `Best: ${longestStreak} days`;
+                if (activePill) activePill.textContent = `${activeDays} active days`;
+
+                // Update year-label and button states
+                const state = memberYearState.get(member.id);
+                const yearNav = document.querySelector(`.year-nav[data-member-id="${member.id}"]`);
+                if (yearNav && state) {
+                    yearNav.querySelector('.year-label').textContent = year !== null ? String(year) : 'Rolling';
+                    yearNav.querySelector('.year-prev').disabled = (state.idx !== null && state.idx === 0);
+                    yearNav.querySelector('.year-next').disabled = (state.idx === null);
+                }
+            }
+
             function renderDashboard(dashboardData) {
                 const container = document.querySelector('.members-grid');
                 container.innerHTML = '';
+                memberYearState.clear();
 
                 if (dashboardData.name) {
                     document.querySelector('.dashboard-title').textContent = dashboardData.name;
