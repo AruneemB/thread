@@ -2108,24 +2108,24 @@
             }
 
             /**
-             * Builds the static HTML shell for a member card: avatar, name, total
-             * message count, streak badges, and empty slot elements that will be
-             * filled by renderDashboard() with the calendar grid and month labels.
-             * Using placeholder IDs avoids a second DOM query pass and keeps the
-             * calendar injection O(1) per card.
+             * Builds the static HTML shell for a member card: avatar, name, stat
+             * badges, year-nav control, and empty calendar slot elements that are
+             * filled by renderDashboard(). Stat elements carry unique IDs so that
+             * updateMemberCardYear() can update them in-place without rebuilding the
+             * card. The year-nav arrows are hidden from PNG exports via no-export.
              *
              * @param {{ id: string, name: string, color: string, initials: string,
              *           total: number, currentStreak: number, longestStreak: number,
              *           dailyCounts: Object.<string, number> }} member
-             * @returns {HTMLDivElement} A div.member-card with empty calendar slots.
+             * @returns {HTMLDivElement} A div.member-row with empty calendar slots.
              */
             function renderMemberCard(member) {
                 const row = document.createElement('div');
                 row.className = 'member-row';
-                
+
                 const totalFormatted = new Intl.NumberFormat().format(member.total);
-                const activeDays = Object.keys(member.dailyCounts).length;
-                
+                const activeDays = Object.keys(member.dailyCounts).filter(d => member.dailyCounts[d] > 0).length;
+
                 row.innerHTML = `
                     <div class="member-header">
                         <div class="member-info">
@@ -2134,15 +2134,15 @@
                         </div>
                         <div class="mstats">
                             <div class="mstat">
-                                <div class="mstat-val">${totalFormatted}</div>
-                                <div class="mstat-lbl">messages</div>
+                                <div class="mstat-val" id="stat-msg-${member.id}">${totalFormatted}</div>
+                                <div class="mstat-lbl" id="stat-msg-lbl-${member.id}">messages</div>
                             </div>
                             <div class="mstat">
-                                <div class="mstat-val">${member.currentStreak}d</div>
+                                <div class="mstat-val" id="stat-streak-${member.id}">${member.currentStreak}d</div>
                                 <div class="mstat-lbl">streak</div>
                             </div>
                             <div class="mstat">
-                                <div class="mstat-val">${member.longestStreak}d</div>
+                                <div class="mstat-val" id="stat-best-${member.id}">${member.longestStreak}d</div>
                                 <div class="mstat-lbl">best</div>
                             </div>
                         </div>
@@ -2161,12 +2161,17 @@
                         </div>
                     </div>
                     <div class="streak-bar">
-                        <div class="streak-pill ${member.currentStreak > 0 ? 's-cur' : ''}">🔥 ${member.currentStreak} day streak</div>
-                        <div class="streak-pill">Best: ${member.longestStreak} days</div>
-                        <div class="streak-pill">${activeDays} active days</div>
+                        <div class="streak-pill ${member.currentStreak > 0 ? 's-cur' : ''}" id="stat-streak-pill-${member.id}">🔥 ${member.currentStreak} day streak</div>
+                        <div class="streak-pill" id="stat-best-pill-${member.id}">Best: ${member.longestStreak} days</div>
+                        <div class="streak-pill" id="stat-active-${member.id}">${activeDays} active days</div>
+                        <div class="year-nav no-export" data-member-id="${member.id}">
+                            <button class="year-prev" aria-label="Previous year">&#8249;</button>
+                            <span class="year-label">Rolling</span>
+                            <button class="year-next" aria-label="Next year">&#8250;</button>
+                        </div>
                     </div>
                 `;
-                
+
                 return row;
             }
 
