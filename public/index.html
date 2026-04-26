@@ -2667,13 +2667,25 @@
                 chatToggle.style.display = 'flex';
             });
 
+            function renderMarkdown(text) {
+                return text
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/_(.+?)_/g, '<em>$1</em>');
+            }
+
             function addMessage(content, role) {
                 const msgEl = document.createElement('div');
                 msgEl.className = `chat-msg ${role}`;
-                msgEl.textContent = content;
+                if (role === 'assistant') {
+                    msgEl.innerHTML = renderMarkdown(content);
+                } else {
+                    msgEl.textContent = content;
+                }
                 chatMessages.appendChild(msgEl);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
-                
+
                 chatHistory.push({ role, content });
                 if (chatHistory.length > 20) chatHistory.shift();
             }
