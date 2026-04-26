@@ -30,6 +30,27 @@ export interface DashboardData {
 
 let browserInstance: Browser | null = null;
 
+// Limit simultaneous Puppeteer renders to 1 to prevent memory blow-out.
+let activeRenders = 0;
+const renderQueue: Array<() => void> = [];
+
+function acquireRenderSlot(): Promise<() => void> {
+  return new Promise(resolve => {
+    const tryAcquire = () => {
+      if (activeRenders < 1) {
+        activeRenders++;
+        resolve(() => {
+          activeRenders--;
+          renderQueue.shift()?.();
+        });
+      } else {
+        renderQueue.push(tryAcquire);
+      }
+    };
+    tryAcquire();
+  });
+}
+
 async function getBrowser(): Promise<Browser> {
   if (browserInstance && browserInstance.connected) {
     return browserInstance;
@@ -48,6 +69,7 @@ async function renderDashboard(data: DashboardData): Promise<Buffer> {
   const parsed = parseInt(process.env.RENDER_TIMEOUT_MS ?? "30000", 10);
   const timeoutMs = isNaN(parsed) ? 30000 : parsed;
 
+  const release = await acquireRenderSlot();
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
@@ -69,6 +91,7 @@ async function renderDashboard(data: DashboardData): Promise<Buffer> {
     throw err;
   } finally {
     try { await page.close(); } catch { /* ignore */ }
+    release();
   }
 }
 

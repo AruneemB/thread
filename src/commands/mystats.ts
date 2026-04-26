@@ -19,6 +19,8 @@ mystatsComposer.command("mystats", async (ctx) => {
     return;
   }
 
+  await ctx.replyWithChatAction("upload_photo");
+
   const dailyCounts = await getDailyCountsForUser(chatId, userId, 52);
   const streaks = computeStreaks(dailyCounts);
   const memberData = buildMemberData(

@@ -48,6 +48,7 @@ function makeCtx(overrides: Record<string, unknown> = {}) {
     chat: { id: -100123, title: "Test Group", ...(overrides.chat as Record<string, unknown> ?? {}) },
     from: overrides.from ?? { id: 42, first_name: "Test User" },
     reply: vi.fn(),
+    replyWithChatAction: vi.fn(),
     api: {
       sendPhoto: vi.fn(),
       ...(overrides.api as Record<string, unknown> ?? {}),

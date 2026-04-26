@@ -124,6 +124,11 @@ statsComposer.command("stats", async (ctx) => {
     }
   }
 
+  // Claim the cooldown slot before any heavy work to prevent double-renders
+  // from simultaneous requests for the same chat.
+  await setCooldown(chatId, new Date().toISOString());
+  await ctx.replyWithChatAction("upload_photo");
+
   // Single-member lookup by username
   if (targetUsername !== null) {
     const member = await getMemberByUsername(chatId, targetUsername);
@@ -177,8 +182,6 @@ statsComposer.command("stats", async (ctx) => {
         ? `Thread — activity report for ${groupName}\n\nView live: ${shareUrl}`
         : `Thread — activity report for ${groupName}`,
     });
-
-    await setCooldown(chatId, new Date().toISOString());
     return;
   }
 
@@ -237,9 +240,6 @@ statsComposer.command("stats", async (ctx) => {
       ? `Thread — activity report for ${groupName}\n\nView live: ${shareUrl}`
       : `Thread — activity report for ${groupName}`,
   });
-
-  // Set cooldown only after successful send
-  await setCooldown(chatId, new Date().toISOString());
 });
 
 statsComposer.command("threadhelp", async (ctx) => {

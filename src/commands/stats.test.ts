@@ -60,6 +60,7 @@ function makeCtx(overrides: Record<string, unknown> = {}) {
     from: overrides.from ?? { id: 42, first_name: "Test User" },
     reply: vi.fn(),
     replyWithPhoto: vi.fn(),
+    replyWithChatAction: vi.fn(),
   };
 }
 
@@ -273,12 +274,12 @@ describe("/stats command", () => {
       expect(ctx.reply).toHaveBeenCalledWith("Something went wrong generating the report.");
     });
 
-    it("render failure does not set cooldown", async () => {
+    it("render failure still claims the cooldown slot", async () => {
       setupDefaultMocks();
       mockRender.mockRejectedValueOnce(new Error("Timeout exceeded"));
       const ctx = makeCtx();
       await getHandler()(ctx);
-      expect(mockSetCooldown).not.toHaveBeenCalled();
+      expect(mockSetCooldown).toHaveBeenCalled();
     });
   });
 });
