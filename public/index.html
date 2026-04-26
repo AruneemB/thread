@@ -897,6 +897,13 @@
             border: 1px solid var(--border);
         }
 
+        .chat-msg.assistant p { margin: 0 0 0.4em; }
+        .chat-msg.assistant p:last-child { margin-bottom: 0; }
+        .chat-msg.assistant ul,
+        .chat-msg.assistant ol { margin: 0.25em 0 0.4em 1.25em; padding: 0; }
+        .chat-msg.assistant li { margin-bottom: 0.2em; }
+        .chat-msg.assistant code { background: var(--bg); border-radius: 3px; padding: 0.1em 0.35em; font-size: 0.85em; font-family: monospace; }
+
         #chat-input-area {
             padding: 12px 16px;
             border-top: 1px solid var(--border);
@@ -2668,11 +2675,41 @@
             });
 
             function renderMarkdown(text) {
-                return text
-                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const inlineFormat = s => s
                     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                    .replace(/_(.+?)_/g, '<em>$1</em>');
+                    .replace(/_(.+?)_/g, '<em>$1</em>')
+                    .replace(/`(.+?)`/g, '<code>$1</code>');
+
+                const lines = text.split('\n');
+                const out = [];
+                let inUl = false, inOl = false;
+
+                for (const raw of lines) {
+                    const line = escape(raw);
+                    const ulMatch = line.match(/^[-*]\s+(.*)/);
+                    const olMatch = line.match(/^\d+\.\s+(.*)/);
+
+                    if (ulMatch) {
+                        if (!inUl) { if (inOl) { out.push('</ol>'); inOl = false; } out.push('<ul>'); inUl = true; }
+                        out.push(`<li>${inlineFormat(ulMatch[1])}</li>`);
+                    } else if (olMatch) {
+                        if (!inOl) { if (inUl) { out.push('</ul>'); inUl = false; } out.push('<ol>'); inOl = true; }
+                        out.push(`<li>${inlineFormat(olMatch[1])}</li>`);
+                    } else {
+                        if (inUl) { out.push('</ul>'); inUl = false; }
+                        if (inOl) { out.push('</ol>'); inOl = false; }
+                        if (line.trim() === '') {
+                            out.push('<br>');
+                        } else {
+                            out.push(`<p>${inlineFormat(line)}</p>`);
+                        }
+                    }
+                }
+                if (inUl) out.push('</ul>');
+                if (inOl) out.push('</ol>');
+                return out.join('');
             }
 
             function addMessage(content, role) {
