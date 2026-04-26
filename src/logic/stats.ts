@@ -34,6 +34,41 @@ export async function getDailyCountsForUser(
   return counts;
 }
 
+export async function getBatchDailyCountsForUsers(
+  chatId: string,
+  userIds: string[],
+  weeks: number,
+  referenceDate?: string,
+): Promise<Map<string, Map<string, number>>> {
+  if (userIds.length === 0) return new Map();
+
+  const client = await getDbInstance();
+  const ref = referenceDate ? new Date(referenceDate + "T00:00:00Z") : new Date();
+  const cutoff = new Date(ref);
+  cutoff.setUTCDate(cutoff.getUTCDate() - weeks * 7);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  const placeholders = userIds.map(() => "?").join(", ");
+  const result = await client.execute({
+    sql: `
+      SELECT user_id, date, COUNT(*) AS msg_count
+      FROM messages
+      WHERE chat_id = ? AND user_id IN (${placeholders}) AND date >= ?
+      GROUP BY user_id, date
+    `,
+    args: [chatId, ...userIds, cutoffStr],
+  });
+
+  const byChatMember = new Map<string, Map<string, number>>();
+  for (const id of userIds) byChatMember.set(id, new Map());
+  for (const row of result.rows) {
+    const uid = row.user_id as string;
+    const map = byChatMember.get(uid);
+    if (map) map.set(row.date as string, row.msg_count as number);
+  }
+  return byChatMember;
+}
+
 function subtractOneDay(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() - 1);
@@ -111,27 +146,27 @@ export async function getGroupSummary(
 ): Promise<GroupSummary> {
   const client = await getDbInstance();
 
-  const totalResult = await client.execute({
-    sql: `SELECT COUNT(*) AS cnt FROM messages WHERE chat_id = ?`,
-    args: [chatId],
-  });
-
-  const daysResult = await client.execute({
-    sql: `SELECT COUNT(DISTINCT date) AS cnt FROM messages WHERE chat_id = ?`,
-    args: [chatId],
-  });
-
-  const membersResult = await client.execute({
-    sql: `
-      SELECT user_id, first_name, username, COUNT(*) AS totalCount
-      FROM messages
-      WHERE chat_id = ?
-      GROUP BY user_id
-      ORDER BY totalCount DESC
-      LIMIT ?
-    `,
-    args: [chatId, topN],
-  });
+  const [totalResult, daysResult, membersResult] = await Promise.all([
+    client.execute({
+      sql: `SELECT COUNT(*) AS cnt FROM messages WHERE chat_id = ?`,
+      args: [chatId],
+    }),
+    client.execute({
+      sql: `SELECT COUNT(DISTINCT date) AS cnt FROM messages WHERE chat_id = ?`,
+      args: [chatId],
+    }),
+    client.execute({
+      sql: `
+        SELECT user_id, first_name, username, COUNT(*) AS totalCount
+        FROM messages
+        WHERE chat_id = ?
+        GROUP BY user_id
+        ORDER BY totalCount DESC
+        LIMIT ?
+      `,
+      args: [chatId, topN],
+    }),
+  ]);
 
   const topMembers: TopMember[] = membersResult.rows.map(row => ({
     user_id: row.user_id as string,

@@ -28,20 +28,29 @@ export interface DashboardData {
   members: MemberData[];
 }
 
-async function renderDashboard(data: DashboardData): Promise<Buffer> {
-  const parsed = parseInt(process.env.RENDER_TIMEOUT_MS ?? "30000", 10);
-  const timeoutMs = isNaN(parsed) ? 30000 : parsed;
+let browserInstance: Browser | null = null;
 
-  logger.info("Launching Chromium browser for render");
-  const browser = await puppeteer.launch({
+async function getBrowser(): Promise<Browser> {
+  if (browserInstance && browserInstance.connected) {
+    return browserInstance;
+  }
+  logger.info("Launching Chromium browser");
+  browserInstance = await puppeteer.launch({
     args: chromium.args,
     defaultViewport: { width: 900, height: 800 },
     executablePath: await chromium.executablePath(),
     headless: chromium.headless,
   });
+  return browserInstance;
+}
 
+async function renderDashboard(data: DashboardData): Promise<Buffer> {
+  const parsed = parseInt(process.env.RENDER_TIMEOUT_MS ?? "30000", 10);
+  const timeoutMs = isNaN(parsed) ? 30000 : parsed;
+
+  const browser = await getBrowser();
+  const page = await browser.newPage();
   try {
-    const page = await browser.newPage();
     await page.setContent(templateHtml, { waitUntil: "networkidle0", timeout: timeoutMs });
     await page.evaluate((d) => {
       (window as any).__THREAD_DATA__ = d;
@@ -53,9 +62,13 @@ async function renderDashboard(data: DashboardData): Promise<Buffer> {
     const buffer = await page.screenshot({ fullPage: true, type: "png" });
     logger.info("Screenshot captured successfully");
     return Buffer.from(buffer);
+  } catch (err) {
+    // On error, kill the browser so the next call gets a fresh one
+    try { await browserInstance?.close(); } catch { /* ignore */ }
+    browserInstance = null;
+    throw err;
   } finally {
-    await browser.close();
-    logger.info("Chromium browser closed");
+    try { await page.close(); } catch { /* ignore */ }
   }
 }
 
@@ -77,5 +90,9 @@ export class DashboardRenderer {
 export const renderer = new DashboardRenderer();
 
 export async function closeRenderer(): Promise<void> {
-  // No-op for serverless compatibility
+  if (browserInstance) {
+    try { await browserInstance.close(); } catch { /* ignore */ }
+    browserInstance = null;
+    logger.info("Chromium browser closed");
+  }
 }

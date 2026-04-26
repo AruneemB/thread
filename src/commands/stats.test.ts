@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("../logic/stats.js", () => ({
   getGroupSummary: vi.fn(),
   getDailyCountsForUser: vi.fn(),
+  getBatchDailyCountsForUsers: vi.fn(),
   computeStreaks: vi.fn(),
   getTotalMessages: vi.fn(),
 }));
@@ -35,13 +36,14 @@ vi.mock("grammy", () => {
   return { Composer, InputFile };
 });
 
-import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
+import { getGroupSummary, getDailyCountsForUser, getBatchDailyCountsForUsers, computeStreaks, getTotalMessages } from "../logic/stats.js";
 import { renderer } from "../renderer/renderer.js";
 import { getMemberByUsername, getCooldown, setCooldown, generateSnapshotToken, saveSnapshot } from "../db/db.js";
 import { statsComposer, getCooldownMs, buildCells, buildMemberData, avatarColorFromId, initialsFrom } from "./stats.js";
 
 const mockGetGroupSummary = getGroupSummary as ReturnType<typeof vi.fn>;
 const mockGetDailyCounts = getDailyCountsForUser as ReturnType<typeof vi.fn>;
+const mockGetBatchDailyCounts = getBatchDailyCountsForUsers as ReturnType<typeof vi.fn>;
 const mockComputeStreaks = computeStreaks as ReturnType<typeof vi.fn>;
 const mockGetTotalMessages = getTotalMessages as ReturnType<typeof vi.fn>;
 const mockRender = renderer.render as ReturnType<typeof vi.fn>;
@@ -78,6 +80,9 @@ function setupDefaultMocks(memberCount = 2) {
     topMembers: members,
   });
   mockGetDailyCounts.mockResolvedValue(new Map<string, number>());
+  mockGetBatchDailyCounts.mockResolvedValue(
+    new Map(members.map(m => [m.user_id, new Map<string, number>()])),
+  );
   mockComputeStreaks.mockReturnValue({ current: 3, longest: 10 });
   mockGetTotalMessages.mockImplementation(async (_chatId: string, userId: string) => {
     const m = members.find(x => x.user_id === userId);

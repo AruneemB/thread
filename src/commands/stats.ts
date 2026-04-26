@@ -1,5 +1,5 @@
 import { Composer, InputFile } from "grammy";
-import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
+import { getGroupSummary, getDailyCountsForUser, getBatchDailyCountsForUsers, computeStreaks, getTotalMessages } from "../logic/stats.js";
 import { renderer, type DashboardData, type MemberData } from "../renderer/renderer.js";
 import { getMemberByUsername, getCooldown, setCooldown, generateSnapshotToken, saveSnapshot } from "../db/db.js";
 import { logger } from "../utils/logger.js";
@@ -189,14 +189,14 @@ statsComposer.command("stats", async (ctx) => {
     return;
   }
 
-  // Build member data
-  const members: MemberData[] = [];
-  for (const tm of summary.topMembers) {
-    const dailyCounts = await getDailyCountsForUser(chatId, tm.user_id, 52);
+  // Build member data — one batch query for all members' daily counts
+  const userIds = summary.topMembers.map(tm => tm.user_id);
+  const batchCounts = await getBatchDailyCountsForUsers(chatId, userIds, 52);
+  const members: MemberData[] = summary.topMembers.map(tm => {
+    const dailyCounts = batchCounts.get(tm.user_id) ?? new Map();
     const streaks = computeStreaks(dailyCounts);
-    const total = await getTotalMessages(chatId, tm.user_id);
-    members.push(buildMemberData(tm, dailyCounts, streaks, total));
-  }
+    return buildMemberData(tm, dailyCounts, streaks, tm.totalCount);
+  });
 
   const dashboardData: DashboardData = {
     groupName,
