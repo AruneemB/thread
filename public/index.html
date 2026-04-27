@@ -2093,24 +2093,35 @@
                 container.className = 'month-labels';
                 container.style.width = `${weeks * STRIDE - GAP}px`;
 
+                // Collect all month-change points first so we can filter out
+                // partial months at the left edge that would overlap the next label.
+                const entries = [];
                 let lastMonth = -1;
                 for (let i = 0; i < cells.length; i += 7) {
-                    const weekCol = i / 7;
                     const date = new Date(cells[i].date + 'T00:00:00Z');
                     const month = date.getUTCMonth();
                     if (month !== lastMonth) {
-                        const span = document.createElement('span');
-                        span.style.position = 'absolute';
-                        span.style.left = `${weekCol * STRIDE}px`;
-                        if (year !== null && month === 0) {
-                            span.textContent = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
-                        } else {
-                            span.textContent = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
-                        }
-                        container.appendChild(span);
+                        entries.push({ weekCol: i / 7, month, date });
                         lastMonth = month;
                     }
                 }
+
+                // Suppress a label when the next label starts fewer than 2 columns
+                // away — not enough room to read it without overlapping.
+                const MIN_COL_GAP = 2;
+                entries.forEach((entry, idx) => {
+                    const nextCol = idx < entries.length - 1 ? entries[idx + 1].weekCol : Infinity;
+                    if (nextCol - entry.weekCol < MIN_COL_GAP) return;
+                    const span = document.createElement('span');
+                    span.style.position = 'absolute';
+                    span.style.left = `${entry.weekCol * STRIDE}px`;
+                    if (year !== null && entry.month === 0) {
+                        span.textContent = entry.date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+                    } else {
+                        span.textContent = entry.date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+                    }
+                    container.appendChild(span);
+                });
 
                 return container;
             }
