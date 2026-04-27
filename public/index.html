@@ -596,11 +596,10 @@
         }
 
         .month-labels {
-            display: flex;
+            position: relative;
             font-size: 0.625rem;
             color: var(--text-secondary);
-            justify-content: space-between;
-            width: 100%;
+            height: 10px;
         }
 
         .calendar-body {
@@ -2087,15 +2086,22 @@
              * @returns {HTMLDivElement} A div.month-labels element ready to insert.
              */
             function renderMonthLabels(cells, year = null) {
+                const CELL = 10, GAP = 3, STRIDE = CELL + GAP; // 13px per week column
+                const weeks = Math.ceil(cells.length / 7);
+
                 const container = document.createElement('div');
                 container.className = 'month-labels';
+                container.style.width = `${weeks * STRIDE - GAP}px`;
 
                 let lastMonth = -1;
                 for (let i = 0; i < cells.length; i += 7) {
+                    const weekCol = i / 7;
                     const date = new Date(cells[i].date + 'T00:00:00Z');
                     const month = date.getUTCMonth();
                     if (month !== lastMonth) {
                         const span = document.createElement('span');
+                        span.style.position = 'absolute';
+                        span.style.left = `${weekCol * STRIDE}px`;
                         if (year !== null && month === 0) {
                             span.textContent = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
                         } else {
