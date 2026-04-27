@@ -251,6 +251,8 @@ statsComposer.command("threadhelp", async (ctx) => {
       `/mystats — Get your personal stats sent via DM\n` +
       `/tldr — High-level summary and features\n` +
       `/summon — Summon all administrators in this group\n` +
+      `/issue — Send AI-summarized feedback to GitHub\n` +
+      `/chat — Have a natural language conversation with Thread\n` +
       `/threadhelp — Show this help message`,
     );
     log.info({ chat_id: ctx.chat.id }, "threadhelp reply sent");

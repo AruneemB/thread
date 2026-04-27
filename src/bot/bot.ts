@@ -5,6 +5,7 @@ import { mystatsComposer } from "../commands/mystats.js";
 import { tldrComposer } from "../commands/tldr.js";
 import { summonComposer } from "../commands/summon.js";
 import { issueComposer, ensureGitHubLabels } from "../commands/issue.js";
+import { chatComposer } from "../commands/chat.js";
 import { logger } from "../utils/logger.js";
 import { incrementMetric } from "../db/db.js";
 
@@ -36,5 +37,6 @@ bot.use(mystatsComposer);
 bot.use(tldrComposer);
 bot.use(summonComposer);
 bot.use(issueComposer);
+bot.use(chatComposer);
 _logger.info("Bot instance created");
 ensureGitHubLabels().catch((err) => _logger.error({ err }, "Failed to ensure GitHub labels"));

@@ -89,6 +89,22 @@ async function initSchema(client: Client): Promise<void> {
       value INTEGER NOT NULL DEFAULT 0
     )
   `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS chat_history (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id    TEXT    NOT NULL,
+      user_id    TEXT    NOT NULL,
+      role       TEXT    NOT NULL,
+      content    TEXT    NOT NULL,
+      created_at TEXT    NOT NULL
+    )
+  `);
+
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_chat_history_chat_user
+      ON chat_history(chat_id, user_id, created_at)
+  `);
 }
 
 // --- Client Connection ---
@@ -253,6 +269,47 @@ export async function getSnapshot(token: string): Promise<DashboardData | null> 
   });
   if (result.rows.length === 0) return null;
   return JSON.parse(result.rows[0].data as string) as DashboardData;
+}
+
+// --- Chat History Functions ---
+
+export type ChatRole = "user" | "model";
+
+export interface ChatHistoryRow {
+  role: ChatRole;
+  content: string;
+}
+
+export async function getChatHistory(chatId: string, userId: string, limit = 10): Promise<ChatHistoryRow[]> {
+  const client = await getDb();
+  const result = await client.execute({
+    sql: `
+      SELECT role, content FROM (
+        SELECT role, content, created_at FROM chat_history
+        WHERE chat_id = ? AND user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+      ) ORDER BY created_at ASC
+    `,
+    args: [chatId, userId, limit],
+  });
+  return result.rows.map((r) => ({ role: r.role as ChatRole, content: r.content as string }));
+}
+
+export async function appendChatHistory(chatId: string, userId: string, role: ChatRole, content: string): Promise<void> {
+  const client = await getDb();
+  await client.execute({
+    sql: `INSERT INTO chat_history (chat_id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)`,
+    args: [chatId, userId, role, content, new Date().toISOString()],
+  });
+}
+
+export async function clearChatHistory(chatId: string, userId: string): Promise<void> {
+  const client = await getDb();
+  await client.execute({
+    sql: `DELETE FROM chat_history WHERE chat_id = ? AND user_id = ?`,
+    args: [chatId, userId],
+  });
 }
 
 // --- Exports ---
