@@ -73,7 +73,7 @@ async function renderDashboard(data: DashboardData): Promise<Buffer> {
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
-    await page.setContent(templateHtml, { waitUntil: "networkidle0", timeout: timeoutMs });
+    await page.setContent(templateHtml, { waitUntil: "load", timeout: timeoutMs });
     await page.evaluate((d) => {
       (window as any).__THREAD_DATA__ = d;
       if (typeof (window as any).renderDashboard === 'function') {

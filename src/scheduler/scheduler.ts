@@ -2,9 +2,8 @@ import { Bot, InputFile } from "grammy";
 import { getDbInstance } from "../db/db.js";
 import {
   getGroupSummary,
-  getDailyCountsForUser,
+  getBatchDailyCountsForUsers,
   computeStreaks,
-  getTotalMessages,
 } from "../logic/stats.js";
 import { renderer } from "../renderer/renderer.js";
 import type { DashboardData, MemberData } from "../renderer/renderer.js";
@@ -12,6 +11,8 @@ import { buildMemberData, formatDateRange } from "../commands/stats.js";
 import { logger } from "../utils/logger.js";
 
 const log = logger.child({ module: "scheduler" });
+
+const PER_CHAT_TIMEOUT_MS = 25_000;
 
 export async function getActiveChatIds(): Promise<string[]> {
   const client = await getDbInstance();
@@ -22,16 +23,40 @@ export async function getActiveChatIds(): Promise<string[]> {
   return result.rows.map((row) => row.chat_id as string);
 }
 
-function formatWeeklyRange(): string {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(now.getDate() - 7);
+async function processChat(bot: Bot, chatId: string): Promise<void> {
+  let chatTitle = "Group Chat";
+  try {
+    const chat = await bot.api.getChat(chatId);
+    if (chat.type === "group" || chat.type === "supergroup") {
+      chatTitle = chat.title;
+    }
+  } catch (error) {
+    log.warn({ chatId, error }, "Failed to get chat title, using fallback");
+  }
 
-  const formatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
-  const startStr = formatter.format(sevenDaysAgo);
-  const endStr = formatter.format(now);
+  const summary = await getGroupSummary(chatId);
+  const userIds = summary.topMembers.map(tm => tm.user_id);
+  const batchCounts = await getBatchDailyCountsForUsers(chatId, userIds, 52);
+  const members: MemberData[] = summary.topMembers.map(tm => {
+    const dailyCounts = batchCounts.get(tm.user_id) ?? new Map();
+    const streaks = computeStreaks(dailyCounts);
+    return buildMemberData(tm, dailyCounts, streaks, tm.totalCount);
+  });
 
-  return `${startStr} – ${endStr}`;
+  const dashboardData: DashboardData = {
+    groupName: chatTitle,
+    dateRange: formatDateRange(),
+    sortBy: "messages",
+    members,
+  };
+
+  const imageBuffer = await renderer.render(dashboardData);
+
+  await bot.api.sendPhoto(chatId, new InputFile(imageBuffer), {
+    caption: `Thread — activity report · ${dashboardData.dateRange}`,
+  });
+
+  log.info({ chatId, chatTitle }, "Weekly digest sent successfully");
 }
 
 export async function runWeeklyDigest(): Promise<void> {
@@ -54,44 +79,14 @@ export async function runWeeklyDigest(): Promise<void> {
 
   for (const chatId of chatIds) {
     try {
-      // Get chat title
-      let chatTitle = "Group Chat";
-      try {
-        const chat = await bot.api.getChat(chatId);
-        if (chat.type === "group" || chat.type === "supergroup") {
-          chatTitle = chat.title;
-        }
-      } catch (error) {
-        log.warn({ chatId, error }, "Failed to get chat title, using fallback");
-      }
-
-      // Get group summary and build dashboard
-      const summary = await getGroupSummary(chatId);
-      const members: MemberData[] = [];
-      for (const tm of summary.topMembers) {
-        const dailyCounts = await getDailyCountsForUser(chatId, tm.user_id, 52);
-        const streaks = computeStreaks(dailyCounts);
-        const total = await getTotalMessages(chatId, tm.user_id);
-        members.push(buildMemberData(tm, dailyCounts, streaks, total));
-      }
-
-      const dashboardData: DashboardData = {
-        groupName: chatTitle,
-        dateRange: formatDateRange(),
-        sortBy: "messages",
-        members,
-      };
-
-      const imageBuffer = await renderer.render(dashboardData);
-
-      // Send digest
-      await bot.api.sendPhoto(chatId, new InputFile(imageBuffer), {
-        caption: `Thread — weekly recap · ${formatWeeklyRange()}`,
-      });
-
-      log.info({ chatId, chatTitle }, "Weekly digest sent successfully");
+      await Promise.race([
+        processChat(bot, chatId),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Chat ${chatId} timed out`)), PER_CHAT_TIMEOUT_MS)
+        ),
+      ]);
     } catch (error) {
-      log.error({ chatId, error }, "Failed to send weekly digest");
+      log.error({ chatId, error }, "Failed or timed out sending weekly digest");
     }
   }
 

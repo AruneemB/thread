@@ -8,9 +8,8 @@ vi.mock("../db/db.js", () => ({
 
 vi.mock("../logic/stats.js", () => ({
   getGroupSummary: vi.fn(),
-  getDailyCountsForUser: vi.fn(),
+  getBatchDailyCountsForUsers: vi.fn(),
   computeStreaks: vi.fn(),
-  getTotalMessages: vi.fn(),
 }));
 
 vi.mock("../renderer/renderer.js", () => ({
@@ -36,15 +35,14 @@ vi.mock("grammy", () => {
 });
 
 import { getDbInstance } from "../db/db.js";
-import { getGroupSummary, getDailyCountsForUser, computeStreaks, getTotalMessages } from "../logic/stats.js";
+import { getGroupSummary, getBatchDailyCountsForUsers, computeStreaks } from "../logic/stats.js";
 import { renderer } from "../renderer/renderer.js";
 import { buildMemberData, formatDateRange } from "../commands/stats.js";
 
 const mockGetDbInstance = getDbInstance as ReturnType<typeof vi.fn>;
 const mockGetGroupSummary = getGroupSummary as ReturnType<typeof vi.fn>;
-const mockGetDailyCounts = getDailyCountsForUser as ReturnType<typeof vi.fn>;
+const mockGetBatchDailyCounts = getBatchDailyCountsForUsers as ReturnType<typeof vi.fn>;
 const mockComputeStreaks = computeStreaks as ReturnType<typeof vi.fn>;
-const mockGetTotalMessages = getTotalMessages as ReturnType<typeof vi.fn>;
 const mockRender = renderer.render as ReturnType<typeof vi.fn>;
 const mockBuildMemberData = buildMemberData as ReturnType<typeof vi.fn>;
 const mockFormatDateRange = formatDateRange as ReturnType<typeof vi.fn>;
@@ -127,9 +125,8 @@ describe("Weekly digest functionality", () => {
     mockGetDbInstance.mockResolvedValue(mockClient);
 
     mockGetGroupSummary.mockResolvedValue({ topMembers: [] });
-    mockGetDailyCounts.mockResolvedValue(new Map());
+    mockGetBatchDailyCounts.mockResolvedValue(new Map());
     mockComputeStreaks.mockReturnValue({ current: 0, longest: 0 });
-    mockGetTotalMessages.mockResolvedValue(0);
     mockBuildMemberData.mockReturnValue({});
     mockFormatDateRange.mockReturnValue("Jan 1 – Dec 31, 2025");
     mockRender.mockResolvedValue(Buffer.from("fake-image"));
