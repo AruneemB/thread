@@ -36,6 +36,10 @@ Interact with Thread using the following commands:
 - **`/stats`**: Generates a full activity dashboard for the current group chat, showing a contribution heat-map for top active members. The reply includes a short share link that opens an interactive dashboard in any browser.
 - **`/stats @username`**: Displays a single member's activity card for the group, also with a share link.
 - **`/mystats`**: Sends your personal activity card for the current group directly to your DMs (keeps the group chat clean!).
+- **`/tldr`**: Shows a high-level overview of Thread's capabilities with quick-action buttons.
+- **`/summon`**: Pings all human administrators in the group via mention.
+- **`/issue <description>`**: Sends AI-summarized feedback directly to the Thread GitHub repository as a new issue.
+- **`/chat <message>`**: Have a natural language conversation with the Thread Assistant — ask questions about features, commands, or how Thread works. Conversation history is preserved across messages. Use `/chat reset` to start fresh.
 - **`/threadhelp`**: Displays a help message with all available commands and their usage.
 
 ## 🛠 Tech Stack
@@ -112,7 +116,7 @@ Visit the deployed landing page at the root URL of the Vercel project (link avai
 Thread is continuously evolving. Upcoming milestones include:
 
 - **Web Dashboard**: A standalone visual interface for historical data exploration.
-- **LLM Insights**: AI-powered summaries of chat themes and sentiment analysis.
+- **LLM Insights**: AI-powered summaries of chat themes and sentiment analysis (conversational assistant via `/chat` is live).
 - **Custom Themes**: Pluggable color schemes for contribution graphs.
 - **Extended Analytics**: Heatmaps for hour-by-hour activity patterns.
 - **Multiple Platform Support**: Bringing contribution graphs to Discord and Slack.
