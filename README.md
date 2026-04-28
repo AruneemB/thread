@@ -39,7 +39,7 @@ Interact with Thread using the following commands:
 - **`/tldr`**: Shows a high-level overview of Thread's capabilities with quick-action buttons.
 - **`/summon`**: Pings all human administrators in the group via mention.
 - **`/issue <description>`**: Sends AI-summarized feedback directly to the Thread GitHub repository as a new issue.
-- **`/chat <message>`**: Have a natural language conversation with the Thread Assistant — ask questions about features, commands, or how Thread works. Conversation history is preserved across messages. Use `/chat reset` to start fresh.
+- **`/chat <message>`**: Have a natural language conversation with the Thread Assistant — ask questions about features, commands, or how Thread works. The assistant is injected with live group context (current stats, your activity) so responses are specific to your group. Conversation history is preserved across messages. Use `/chat reset` to start fresh.
 - **`/threadhelp`**: Displays a help message with all available commands and their usage.
 
 ## 🛠 Tech Stack
@@ -71,6 +71,7 @@ The landing page is a standalone, zero-dependency HTML file that processes Teleg
 
 ### Features
 
+- **Navigation buttons**: fixed top-right nav links — the Telegram icon opens the live bot (`@thread_aruneemb_bot`) in a new tab; the GitHub icon links to the repository.
 - **File upload**: drag-and-drop or click-to-browse a Telegram Desktop export (`.json`).
 - **Demo mode**: try the dashboard instantly with synthetic data — no upload required.
 - **Contribution graph**: GitHub-style activity heat-map per group member — defaults to a rolling 52-week view, with per-member year navigation (‹ / ›) to browse full calendar years.
