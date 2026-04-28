@@ -51,7 +51,13 @@ chatComposer.command("chat", async (ctx) => {
   try {
     await ctx.replyWithChatAction("typing");
 
-    const history = await getChatHistory(chatId, userId, MAX_HISTORY_TURNS * 2);
+    const rawHistory = await getChatHistory(chatId, userId, MAX_HISTORY_TURNS * 2);
+
+    // Strip any orphaned trailing "user" entries so history always ends on "model"
+    const history = [...rawHistory];
+    while (history.length > 0 && history[history.length - 1].role !== "model") {
+      history.pop();
+    }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
@@ -66,15 +72,15 @@ chatComposer.command("chat", async (ctx) => {
       })),
     });
 
-    await appendChatHistory(chatId, userId, "user", message);
     const result = await chat.sendMessage(message);
     const reply = result.response.text();
+    await appendChatHistory(chatId, userId, "user", message);
     await appendChatHistory(chatId, userId, "model", reply);
 
     await ctx.reply(reply);
     log.info({ chat_id: chatId, user_id: userId }, "Chat response sent");
   } catch (err) {
     log.error({ err, chat_id: chatId, user_id: userId }, "Failed to process /chat command");
-    await ctx.reply("Sorry, something went wrong. Please try again later.");
+    await ctx.reply("Sorry, something went wrong. If this keeps happening, try `/chat reset`.", { parse_mode: "Markdown" });
   }
 });
