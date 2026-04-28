@@ -48,7 +48,7 @@ Thread is built on a modern, serverless-first stack:
 
 ### Core Logic
 - **Framework**: [grammY](https://grammy.dev/) for robust Telegram bot interaction.
-- **Language**: TypeScript for type-safe state and command handling.
+- **Language**: [TypeScript](https://www.typescriptlang.org/) for type-safe state and command handling.
 - **Database**: [Turso](https://turso.tech/) (libSQL) for distributed, low-latency SQLite storage.
 - **Validation**: [Zod](https://zod.dev/) for strict schema validation of environment and data.
 
