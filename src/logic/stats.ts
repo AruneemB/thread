@@ -231,3 +231,33 @@ export function computeStreaks(
   longest = Math.max(longest, current);
   return { current, longest };
 }
+
+export async function buildChatContext(
+  chatId: string,
+  userId: string,
+  firstName: string,
+): Promise<string> {
+  const DOW_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  const [summary, userTotal, dailyCounts, hourlyMatrix] = await Promise.all([
+    getGroupSummary(chatId, 5),
+    getTotalMessages(chatId, userId),
+    getDailyCountsForUser(chatId, userId, 52),
+    getHourlyMatrix(chatId, userId),
+  ]);
+
+  const streaks = computeStreaks(dailyCounts);
+  const peak = getPeakHour(hourlyMatrix);
+
+  const rankIdx = summary.topMembers.findIndex((m) => m.user_id === userId);
+  const rankStr = rankIdx === -1 ? "unranked" : `rank#${rankIdx + 1}`;
+
+  const topList = summary.topMembers
+    .map((m, i) => `${i + 1}.${m.first_name}(${m.totalCount})`)
+    .join(" ");
+
+  return (
+    `[GroupCtx: msgs=${summary.totalMessages} activeDays=${summary.activeDays} top5=${topList}] ` +
+    `[UserCtx(${firstName}): msgs=${userTotal} streak=${streaks.current} longestStreak=${streaks.longest} ${rankStr} peak=${DOW_NAMES[peak.dow]} ${peak.hour}:00]`
+  );
+}
