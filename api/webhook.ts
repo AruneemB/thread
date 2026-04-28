@@ -31,14 +31,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const text = update?.message?.text ?? "(no text)";
   console.log(`[webhook] update_id=${updateId} chat_id=${chatId} text=${text}`);
 
-  // Respond to Telegram immediately — prevents the 30 s webhook timeout and
-  // eliminates retry storms when rendering is slow. Vercel's Node.js runtime
-  // keeps the function alive until maxDuration (60 s) regardless of when the
-  // response is sent, so the update is processed in the background.
-  res.status(200).send("OK");
+  // Process the update before responding. Vercel freezes the function as soon
+  // as the response is sent, so fire-and-forget background work never runs.
+  // Processing typically completes in <10 s, well within Telegram's 30 s limit.
+  try {
+    await ensureBotInitialized();
+    await bot.handleUpdate(update);
+    console.log(`[webhook] handleUpdate OK for update_id=${updateId}`);
+  } catch (err) {
+    console.error(`[webhook] handleUpdate ERROR for update_id=${updateId}:`, err);
+  }
 
-  ensureBotInitialized()
-    .then(() => bot.handleUpdate(update))
-    .then(() => console.log(`[webhook] handleUpdate OK for update_id=${updateId}`))
-    .catch(err => console.error(`[webhook] handleUpdate ERROR for update_id=${updateId}:`, err));
+  res.status(200).send("OK");
 }
