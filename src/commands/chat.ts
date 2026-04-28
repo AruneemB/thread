@@ -1,11 +1,12 @@
 import { Composer } from "grammy";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getChatHistory, appendChatHistory, clearChatHistory } from "../db/db.js";
+import { buildChatContext } from "../logic/stats.js";
 import { logger } from "../utils/logger.js";
 
 const log = logger.child({ module: "chat" });
 
-const SYSTEM_INSTRUCTION =
+const BASE_SYSTEM_INSTRUCTION =
   "You are the Thread Assistant, an expert AI for the 'Thread' Telegram bot. " +
   "Thread visualizes Telegram group activity as GitHub-style heatmaps. " +
   "It tracks message counts per day and renders them as contribution graphs, similar to GitHub. " +
@@ -59,10 +60,18 @@ chatComposer.command("chat", async (ctx) => {
       history.pop();
     }
 
+    let systemInstruction = BASE_SYSTEM_INSTRUCTION;
+    try {
+      const liveContext = await buildChatContext(chatId, userId, ctx.from?.first_name ?? "User");
+      systemInstruction = BASE_SYSTEM_INSTRUCTION + " " + liveContext;
+    } catch (ctxErr) {
+      log.error({ err: ctxErr, chat_id: chatId, user_id: userId }, "Failed to fetch live context, using static instruction");
+    }
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
-      systemInstruction: SYSTEM_INSTRUCTION,
+      systemInstruction: systemInstruction,
     });
 
     const chat = model.startChat({
