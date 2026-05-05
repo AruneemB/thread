@@ -381,6 +381,89 @@
             text-align: center;
         }
 
+        .signin-button {
+            background: #2aabee;
+            color: #fff;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 1rem 0 0.5rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.15s ease;
+        }
+
+        .signin-button:hover { background: #1a9be0; }
+
+        .chat-list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chat-list-user {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0.25rem 0 0;
+        }
+
+        .signout-btn {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.25rem 0.625rem;
+            cursor: pointer;
+        }
+
+        .chat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .chat-item:hover {
+            border-color: var(--teal-500);
+            background: var(--bg);
+        }
+
+        .chat-item-name {
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+
+        .chat-item-arrow {
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+        }
+
+        .chat-list-empty, .chat-list-loading {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 3rem 0;
+            font-size: 0.9375rem;
+        }
+
         /* State 2: Dashboard */
         .dashboard-header {
             display: flex;
@@ -1101,6 +1184,13 @@
 
     <footer class="landing-footer">
         <button id="demo-btn" class="demo-button" aria-label="Try with sample data">Try with sample data</button>
+        <div id="signin-section">
+            <button id="signin-btn" class="signin-button" aria-label="Sign in with Telegram">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.247l-1.97 9.286c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.935z"/></svg>
+                Sign in with Telegram
+            </button>
+            <div id="telegram-widget-container" style="display: none;"></div>
+        </div>
         <!-- Privacy notice: JSON uploads are client-side, but bot and sharing involve server-side stats -->
         <div class="privacy-notice">
             🔒 <strong>Privacy First:</strong> JSON uploads stay in your browser. Using the bot or sharing a dashboard sends only the required stats to our secure, temporary server.
@@ -1213,6 +1303,19 @@
         </footer>
     </div>
 
+    <div id="chat-list-view" style="display: none;">
+        <div class="chat-list-header">
+            <div>
+                <h2 style="font-size: 1rem; font-weight: 600;">Your Chats</h2>
+                <p id="chat-list-user" class="chat-list-user"></p>
+            </div>
+            <button id="signout-btn" class="signout-btn">Sign out</button>
+        </div>
+        <div id="chat-list-container">
+            <div class="chat-list-loading">Loading chats...</div>
+        </div>
+    </div>
+
     <script>
         /*!
  * html2canvas 1.4.1 <https://html2canvas.hertzen.com>
@@ -1275,6 +1378,8 @@
         //   data-derived values that are numeric or pre-formatted strings.
         //
         // Zero external dependencies — html2canvas is inlined above.
+        const TELEGRAM_BOT_USERNAME = 'thread_aruneemb_bot';
+
         document.addEventListener('DOMContentLoaded', () => {
             const uploadZone = document.getElementById('upload-zone');
             const fileInput = document.getElementById('file-input');
@@ -1552,6 +1657,14 @@
 
             // State management
             let currentDashboardData = null;
+            let currentUser = null;
+
+            function loadAuthState() {
+                try { return JSON.parse(localStorage.getItem('thread_auth') || 'null'); }
+                catch { return null; }
+            }
+            function saveAuthState(u) { localStorage.setItem('thread_auth', JSON.stringify(u)); }
+            function clearAuthState() { localStorage.removeItem('thread_auth'); }
 
             /**
              * Transitions the page to the landing/upload state (State 1).
@@ -1561,6 +1674,7 @@
              */
             function showLandingPage() {
                 document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('chat-list-view').style.display = 'none';
                 document.querySelector('.page-header').style.display = 'block';
                 document.getElementById('metrics-section').style.display = 'flex';
                 document.getElementById('upload-zone').style.display = 'block';
@@ -1584,6 +1698,9 @@
                 document.getElementById('metrics-section').style.display = 'none';
                 document.getElementById('upload-zone').style.display = 'none';
                 document.querySelector('.landing-footer').style.display = 'none';
+                document.getElementById('chat-list-view').style.display = 'none';
+                document.getElementById('reset-btn').textContent =
+                    currentUser ? '← Back to Chats' : 'Try Another File';
                 const dashboard = document.getElementById('dashboard');
                 dashboard.style.display = 'block';
                 dashboard.classList.remove('fade-in');
@@ -1591,10 +1708,27 @@
                 dashboard.classList.add('fade-in');
             }
 
+            function showChatList() {
+                document.getElementById('dashboard').style.display = 'none';
+                document.querySelector('.page-header').style.display = 'none';
+                document.getElementById('metrics-section').style.display = 'none';
+                document.getElementById('upload-zone').style.display = 'none';
+                document.querySelector('.landing-footer').style.display = 'none';
+                const view = document.getElementById('chat-list-view');
+                view.style.display = 'block';
+                view.classList.remove('fade-in');
+                void view.offsetWidth;
+                view.classList.add('fade-in');
+            }
+
             // Navigation event listeners
             document.getElementById('reset-btn').addEventListener('click', () => {
-                showLandingPage();
-                currentDashboardData = null;
+                if (currentUser) {
+                    loadAndShowChats();
+                } else {
+                    showLandingPage();
+                    currentDashboardData = null;
+                }
             });
 
             document.getElementById('dashboard-logo-btn').addEventListener('click', () => {
@@ -1608,6 +1742,119 @@
                 const demoData = generateDemoData();
                 renderDashboard(demoData);
             });
+
+            // Telegram auth flow
+            window.onTelegramAuth = async function(tgUser) {
+                try {
+                    const res = await fetch('/api/auth/telegram', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(tgUser)
+                    });
+                    if (!res.ok) throw new Error('Auth failed');
+                    const { token } = await res.json();
+                    currentUser = { id: tgUser.id, first_name: tgUser.first_name, token };
+                    saveAuthState(currentUser);
+                    loadAndShowChats();
+                } catch {
+                    alert('Sign-in failed. Please try again.');
+                }
+            };
+
+            document.getElementById('signin-btn').addEventListener('click', () => {
+                if (!document.getElementById('tg-widget-script')) {
+                    const s = document.createElement('script');
+                    s.id = 'tg-widget-script';
+                    s.src = 'https://telegram.org/js/telegram-widget.js?22';
+                    s.setAttribute('data-telegram-login', TELEGRAM_BOT_USERNAME);
+                    s.setAttribute('data-size', 'medium');
+                    s.setAttribute('data-onauth', 'onTelegramAuth(user)');
+                    s.setAttribute('data-request-access', 'write');
+                    const container = document.getElementById('telegram-widget-container');
+                    container.style.display = 'block';
+                    container.appendChild(s);
+                }
+            });
+
+            document.getElementById('signout-btn').addEventListener('click', () => {
+                clearAuthState();
+                currentUser = null;
+                showLandingPage();
+            });
+
+            async function loadAndShowChats() {
+                showChatList();
+                document.getElementById('chat-list-user').textContent =
+                    currentUser ? `Signed in as ${currentUser.first_name}` : '';
+                const container = document.getElementById('chat-list-container');
+                container.innerHTML = '<div class="chat-list-loading">Loading chats...</div>';
+
+                try {
+                    const res = await fetch('/api/me/chats', {
+                        headers: { 'Authorization': `Bearer ${currentUser.token}` }
+                    });
+                    if (res.status === 401) {
+                        clearAuthState(); currentUser = null; showLandingPage(); return;
+                    }
+                    const { chats } = await res.json();
+                    if (chats.length === 0) {
+                        container.innerHTML = '<div class="chat-list-empty">No chats found yet.<br>Add <strong>@' + TELEGRAM_BOT_USERNAME + '</strong> to a group and send some messages first.</div>';
+                        return;
+                    }
+                    const list = document.createElement('div');
+                    list.className = 'chat-list';
+                    chats.forEach(chat => {
+                        const item = document.createElement('div');
+                        item.className = 'chat-item';
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'chat-item-name';
+                        nameSpan.textContent = chat.title;
+                        const arrow = document.createElement('span');
+                        arrow.className = 'chat-item-arrow';
+                        arrow.textContent = '›';
+                        item.appendChild(nameSpan);
+                        item.appendChild(arrow);
+                        item.addEventListener('click', () => loadChat(chat.chat_id));
+                        list.appendChild(item);
+                    });
+                    container.innerHTML = '';
+                    container.appendChild(list);
+                } catch {
+                    container.innerHTML = '<div class="chat-list-empty">Failed to load chats. Please try again.</div>';
+                }
+            }
+
+            async function loadChat(chatId) {
+                const container = document.getElementById('chat-list-container');
+                container.innerHTML = '<div class="chat-list-loading">Loading dashboard...</div>';
+                try {
+                    const res = await fetch(`/api/me/chat/${chatId}`, {
+                        headers: { 'Authorization': `Bearer ${currentUser.token}` }
+                    });
+                    if (res.status === 401) { clearAuthState(); currentUser = null; showLandingPage(); return; }
+                    if (res.status === 403) { container.innerHTML = '<div class="chat-list-empty">Access denied.</div>'; return; }
+                    if (!res.ok) throw new Error('Failed');
+                    const data = await res.json();
+                    data.members = data.members.map(m => ({
+                        ...m,
+                        initials: initialsFrom(m.name),
+                        color: avatarColorFromId(m.id),
+                        cells: buildCells(m.dailyCounts)
+                    }));
+                    renderDashboard(data);
+                } catch {
+                    container.innerHTML = '<div class="chat-list-empty">Failed to load dashboard. Please try again.</div>';
+                }
+            }
+
+            // Restore auth session on page load
+            (function restoreAuth() {
+                const saved = loadAuthState();
+                if (saved && saved.token) {
+                    currentUser = saved;
+                    loadAndShowChats();
+                }
+            })();
 
             // Wire copy-link button: POST data to /api/save, copy the returned short URL
             const copyLinkBtn = document.getElementById('copy-link-btn');
