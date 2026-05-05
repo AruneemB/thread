@@ -105,6 +105,14 @@ async function initSchema(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_chat_history_chat_user
       ON chat_history(chat_id, user_id, created_at)
   `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS chats (
+      chat_id    TEXT PRIMARY KEY,
+      title      TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
 }
 
 // --- Client Connection ---
@@ -310,6 +318,44 @@ export async function clearChatHistory(chatId: string, userId: string): Promise<
     sql: `DELETE FROM chat_history WHERE chat_id = ? AND user_id = ?`,
     args: [chatId, userId],
   });
+}
+
+// --- Chat Functions ---
+
+export async function upsertChat(chatId: string, title: string): Promise<void> {
+  const client = await getDb();
+  await client.execute({
+    sql: `
+      INSERT INTO chats (chat_id, title, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(chat_id) DO UPDATE SET
+        title = excluded.title,
+        updated_at = excluded.updated_at
+    `,
+    args: [chatId, title, new Date().toISOString()],
+  });
+}
+
+export async function getChatsForUser(
+  userId: string,
+): Promise<Array<{ chat_id: string; title: string }>> {
+  const client = await getDb();
+  const result = await client.execute({
+    sql: `
+      SELECT c.chat_id, c.title
+      FROM chats c
+      WHERE EXISTS (
+        SELECT 1 FROM messages m
+        WHERE m.chat_id = c.chat_id AND m.user_id = ?
+      )
+      ORDER BY c.updated_at DESC
+    `,
+    args: [userId],
+  });
+  return result.rows.map((row) => ({
+    chat_id: row.chat_id as string,
+    title: row.title as string,
+  }));
 }
 
 // --- Exports ---
