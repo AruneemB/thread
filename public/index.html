@@ -1174,6 +1174,7 @@
                     data-telegram-login="thread_aruneemb_bot"
                     data-size="medium"
                     data-onauth="onTelegramAuth(user)"
+                    onload="setTimeout(function(){var f=document.querySelector('#telegram-widget-container iframe');console.log('[TG widget] iframe src:',f&&f.src);console.log('[TG widget] page origin:',location.origin);},1000)"
                 ></script>
             </div>
         </div>
