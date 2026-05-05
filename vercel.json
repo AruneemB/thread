@@ -32,6 +32,18 @@
       "maxDuration": 20,
       "memory": 512,
       "includeFiles": "README.md;docs-thread/**"
+    },
+    "api/auth/telegram.ts": {
+      "maxDuration": 10,
+      "memory": 256
+    },
+    "api/me/chats.ts": {
+      "maxDuration": 10,
+      "memory": 256
+    },
+    "api/me/chat/[chatId].ts": {
+      "maxDuration": 15,
+      "memory": 256
     }
   },
   "crons": [
