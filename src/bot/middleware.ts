@@ -1,6 +1,6 @@
 import type { Bot } from "grammy";
 import type { Logger } from "pino";
-import { upsertMember, insertMessage } from "../db/db.js";
+import { upsertMember, insertMessage, upsertChat } from "../db/db.js";
 
 export function extractDateFields(unixTimestamp: number): { date: string; hour: number; dow: number } {
   const d = new Date(unixTimestamp * 1000);
@@ -40,6 +40,10 @@ export function registerMessageHandler(bot: Bot, logger: Logger): void {
 
     try { await insertMessage({ chat_id, user_id, username, first_name, date, hour, dow, msg_length }); }
     catch (err) { logger.error({ err, chat_id, user_id }, "Failed to insert message"); }
+
+    const chatTitle = "title" in msg.chat ? msg.chat.title : msg.chat.first_name;
+    try { await upsertChat(chat_id, chatTitle ?? String(chat_id)); }
+    catch (err) { logger.error({ err, chat_id }, "Failed to upsert chat"); }
 
     await next();
   });
